@@ -16,23 +16,24 @@ interface Cadet {
   diets: { [dietName: string]: boolean }; // Map of diet column names to boolean (if cell was "1")
 }
 
-// Fallback Mock Data in case Google Sheet fetch is unavailable/CORS restricted
+// Fallback Mock Data mirroring the real DATABASE sheet columns & values
 const MOCK_CADETS: Cadet[] = [
-  { no: "1", class: "1CL", name: "JOHN REYMAR L. ADTOON", serialNo: "C-27002", gender: "M", company: "ALFA", battalion: "1ST BATTALION", bos: "PN", status: "FULL DUTY", diets: { "No Pork": true, "No Beef": false, "Vegetarian": false, "Halal": true } },
-  { no: "2", class: "1CL", name: "JETHRO ZEUS R. AMANGAN", serialNo: "C-25020", gender: "M", company: "ALFA", battalion: "1ST BATTALION", bos: "PAF", status: "FULL DUTY", diets: { "No Pork": false, "No Beef": false, "Vegetarian": false, "Halal": false } },
-  { no: "3", class: "1CL", name: "REGINA T. ATIWEN", serialNo: "C-26027", gender: "F", company: "ALFA", battalion: "1ST BATTALION", bos: "PA", status: "FULL DUTY", diets: { "No Pork": false, "No Beef": true, "Vegetarian": false, "Halal": false } },
-  { no: "4", class: "1CL", name: "KURT RANDLE MOLINA ANCHETA", serialNo: "C-27011", gender: "M", company: "BRAVO", battalion: "1ST BATTALION", bos: "PN", status: "HC", diets: { "No Pork": true, "No Beef": false, "Vegetarian": false, "Halal": false } },
-  { no: "5", class: "2CL", name: "RASHEED SHANE COTA ABBAS", serialNo: "C-28001", gender: "M", company: "ALFA", battalion: "1ST BATTALION", bos: "PAF", status: "FULL DUTY", diets: { "No Pork": false, "No Beef": false, "Vegetarian": true, "Halal": true } },
-  { no: "6", class: "2CL", name: "JIAN DALE VERANO ALIVEN", serialNo: "C-28018", gender: "M", company: "BRAVO", battalion: "1ST BATTALION", bos: "PN", status: "FULL DUTY", diets: { "No Pork": false, "No Beef": false, "Vegetarian": false, "Halal": false } },
-  { no: "7", class: "3CL", name: "PERKINS CIABOI ACOP", serialNo: "C-28353", gender: "M", company: "CHARLIE", battalion: "1ST BATTALION", bos: "N/A", status: "FULL DUTY", diets: { "No Pork": true, "No Beef": false, "Vegetarian": false, "Halal": false } },
-  { no: "8", class: "3CL", name: "CARL JHERWEN HIMBAS ARIG", serialNo: "C-29024", gender: "M", company: "DELTA", battalion: "1ST BATTALION", bos: "N/A", status: "HC", diets: { "No Pork": false, "No Beef": false, "Vegetarian": false, "Halal": false } },
-  { no: "9", class: "4CL", name: "PRINCESS DESIREE T. ANGOLUAN", serialNo: "C-30005", gender: "F", company: "ECHO", battalion: "2ND BATTALION", bos: "PA", status: "FULL DUTY", diets: { "No Pork": false, "No Beef": false, "Vegetarian": false, "Halal": false } },
-  { no: "10", class: "4CL", name: "ROBERT JOHN H. AGNES", serialNo: "C-30012", gender: "M", company: "FOXTROT", battalion: "2ND BATTALION", bos: "PAF", status: "FULL DUTY", diets: { "No Pork": true, "No Beef": false, "Vegetarian": false, "Halal": true } },
-  { no: "11", class: "1CL", name: "MARK LESTER REYES GRATIL", serialNo: "C-25154", gender: "M", company: "GOLF", battalion: "2ND BATTALION", bos: "PAF", status: "FULL DUTY", diets: { "No Pork": false, "No Beef": false, "Vegetarian": false, "Halal": false } },
-  { no: "12", class: "2CL", name: "NIMROD KEDIAM AMBUCAY", serialNo: "C-27279", gender: "M", company: "HAWK", battalion: "2ND BATTALION", bos: "PAF", status: "HC", diets: { "No Pork": false, "No Beef": true, "Vegetarian": false, "Halal": false } },
-  { no: "13", class: "3CL", name: "JOSEPH NATHANIEL NIMER BAEL", serialNo: "C-29034", gender: "M", company: "ECHO", battalion: "2ND BATTALION", bos: "N/A", status: "FULL DUTY", diets: { "No Pork": true, "No Beef": false, "Vegetarian": false, "Halal": false } },
-  { no: "14", class: "4CL", name: "ESTELLA MARIE F. BALILI", serialNo: "C-30045", gender: "F", company: "FOXTROT", battalion: "2ND BATTALION", bos: "PN", status: "FULL DUTY", diets: { "No Pork": false, "No Beef": false, "Vegetarian": false, "Halal": false } },
-  { no: "15", class: "1CL", name: "LIAM CARLOS MIRANDA TORRES", serialNo: "C-26332", gender: "M", company: "GOLF", battalion: "2ND BATTALION", bos: "PA", status: "FULL DUTY", diets: { "No Pork": true, "No Beef": true, "Vegetarian": false, "Halal": false } }
+  { no: "1", class: "1CL", name: "ADTOON", serialNo: "C-27002", gender: "M", company: "ALFA", battalion: "1ST BATTALION", bos: "PN", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": true, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "2", class: "1CL", name: "AMANGAN", serialNo: "C-25020", gender: "M", company: "ALFA", battalion: "1ST BATTALION", bos: "PAF", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": false, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "3", class: "1CL", name: "ATIWEN", serialNo: "C-26027", gender: "F", company: "ALFA", battalion: "1ST BATTALION", bos: "PA", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": false, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": true } },
+  { no: "4", class: "1CL", name: "DE MESA", serialNo: "C-27075", gender: "F", company: "ALFA", battalion: "1ST BATTALION", bos: "PN", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": true, "NO SEAFOOD": true, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "5", class: "1CL", name: "FELIPE", serialNo: "C-26151", gender: "F", company: "ALFA", battalion: "1ST BATTALION", bos: "PA", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": false, "NO SEAFOOD": false, "NO EGG": true, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "6", class: "2CL", name: "ABBAS", serialNo: "C-28001", gender: "M", company: "BRAVO", battalion: "1ST BATTALION", bos: "PAF", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": true, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "7", class: "2CL", name: "ALIVEN", serialNo: "C-28018", gender: "M", company: "BRAVO", battalion: "1ST BATTALION", bos: "PN", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": false, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "8", class: "3CL", name: "ACOP", serialNo: "C-28353", gender: "M", company: "CHARLIE", battalion: "2ND BATTALION", bos: "N/A", status: "FULL DUTY", diets: { "NO FISH": true, "NO PORK": false, "NO SEAFOOD": true, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "9", class: "3CL", name: "ARIG", serialNo: "C-29024", gender: "M", company: "DELTA", battalion: "2ND BATTALION", bos: "N/A", status: "HC", diets: { "NO FISH": false, "NO PORK": false, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "10", class: "4CL", name: "ANGOLUAN", serialNo: "C-30005", gender: "F", company: "ECHO", battalion: "3RD BATTALION", bos: "PA", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": false, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "11", class: "4CL", name: "AGNES", serialNo: "C-30012", gender: "M", company: "FOXTROT", battalion: "3RD BATTALION", bos: "PAF", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": true, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "12", class: "1CL", name: "GRATIL", serialNo: "C-25154", gender: "M", company: "GOLF", battalion: "4TH BATTALION", bos: "PAF", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": false, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "13", class: "2CL", name: "AMBUCAY", serialNo: "C-27279", gender: "M", company: "HAWK", battalion: "4TH BATTALION", bos: "PAF", status: "HC", diets: { "NO FISH": false, "NO PORK": false, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": true } },
+  { no: "14", class: "3CL", name: "BAEL", serialNo: "C-29034", gender: "M", company: "ECHO", battalion: "3RD BATTALION", bos: "N/A", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": true, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "15", class: "4CL", name: "BALILI", serialNo: "C-30045", gender: "F", company: "FOXTROT", battalion: "3RD BATTALION", bos: "PN", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": false, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": false } },
+  { no: "16", class: "1CL", name: "TORRES", serialNo: "C-26332", gender: "M", company: "GOLF", battalion: "4TH BATTALION", bos: "PA", status: "FULL DUTY", diets: { "NO FISH": false, "NO PORK": true, "NO SEAFOOD": false, "NO EGG": false, "NO CHICKEN": false, "NO BLOOD": false, "NO FOOD PROCESSED FOOD": false, "NO BEANS": false, "NO NUTS": false, "NO TOFU": false, "NO COFFEE": false, "NO CHOCOLATE": false, "NO TOMATOES": false, "NO SPICY": false, "NO BEEF": true } }
 ];
 
 export default function DashboardPage() {
@@ -40,7 +41,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<"MOCK" | "LIVE">("MOCK");
-  const [dietColumns, setDietColumns] = useState<string[]>(["No Pork", "No Beef", "Vegetarian", "Halal"]);
+  
+  // Default dietary column names from your database sheet
+  const [dietColumns, setDietColumns] = useState<string[]>([
+    "NO FISH", "NO PORK", "NO SEAFOOD", "NO EGG", "NO CHICKEN", "NO BLOOD", 
+    "NO FOOD PROCESSED FOOD", "NO BEANS", "NO NUTS", "NO TOFU", "NO COFFEE", 
+    "NO CHOCOLATE", "NO TOMATOES", "NO SPICY", "NO BEEF"
+  ]);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,22 +60,28 @@ export default function DashboardPage() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
 
   // Fetch Excel data on mount
   useEffect(() => {
     fetchSpreadsheetData();
   }, []);
 
-  // Map company name to battalion
+  // Map company name to battalion (as requested)
+  // Alfa, Bravo -> 1st Battalion
+  // Charlie, Delta -> 2nd Battalion
+  // Echo, Foxtrot -> 3rd Battalion
+  // Golf, Hawk -> 4th Battalion
   const getBattalion = (co: string): string => {
-    const alfaToDelta = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "A", "B", "C", "D"];
-    const echoToHawk = ["ECHO", "FOXTROT", "GOLF", "HAWK", "E", "F", "G", "H", "1ST", "2ND"]; // 1ST and 2ND companies mapped to 2nd BN for test plebes
     const cleanCo = co.trim().toUpperCase();
-    if (alfaToDelta.includes(cleanCo)) {
+    if (cleanCo === "ALFA" || cleanCo === "BRAVO" || cleanCo === "A" || cleanCo === "B") {
       return "1ST BATTALION";
-    } else if (echoToHawk.includes(cleanCo)) {
+    } else if (cleanCo === "CHARLIE" || cleanCo === "DELTA" || cleanCo === "C" || cleanCo === "D") {
       return "2ND BATTALION";
+    } else if (cleanCo === "ECHO" || cleanCo === "FOXTROT" || cleanCo === "E" || cleanCo === "F" || cleanCo === "1ST") {
+      return "3RD BATTALION";
+    } else if (cleanCo === "GOLF" || cleanCo === "HAWK" || cleanCo === "G" || cleanCo === "H" || cleanCo === "2ND") {
+      return "4TH BATTALION";
     }
     return "OTHER / UNKNOWN";
   };
@@ -118,9 +131,10 @@ export default function DashboardPage() {
   };
 
   const fetchSpreadsheetData = async () => {
-    const sheetId = process.env.NEXT_PUBLIC_SPREADSHEET_ID || "1RgBG_8zpjtFt2CCCEft-ryWa7PMKY49wM0yiAqsOeQA";
-    const gid = process.env.NEXT_PUBLIC_DATABASE_GID || "0";
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+    const sheetId = process.env.NEXT_PUBLIC_SPREADSHEET_ID || "14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ";
+    const gid = process.env.NEXT_PUBLIC_DATABASE_GID || "482780671";
+    // Add cache-busting timestamp to prevent browser cache
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}&t=${Date.now()}`;
 
     setLoading(true);
     setError(null);
@@ -138,54 +152,31 @@ export default function DashboardPage() {
         throw new Error("Spreadsheet contains insufficient rows.");
       }
 
-      // Find Header Index
-      // Let's search for a row containing typical headers like "CLASS", "NAME", "LAST NAME" or "SERIAL"
-      let headerIdx = -1;
-      for (let i = 0; i < Math.min(rows.length, 12); i++) {
-        const row = rows[i].map(c => c.toUpperCase());
-        if (row.includes("CLASS") || row.includes("FIRST NAME") || row.includes("SURNAME") || row.includes("LAST NAME")) {
-          headerIdx = i;
-          break;
-        }
-      }
-
-      if (headerIdx === -1) {
-        // Fallback to first row
-        headerIdx = 0;
-      }
-
-      const headers = rows[headerIdx].map(h => h.trim());
+      // Headers should be in the very first row
+      const headers = rows[0].map(h => h.trim());
 
       // Identify Standard Columns
       const colIndices = {
-        no: headers.findIndex(h => h.toUpperCase().match(/^NO\.?$/)),
-        class: headers.findIndex(h => h.toUpperCase().match(/^CLASS$/)),
-        firstName: headers.findIndex(h => h.toUpperCase().match(/FIRST\s*NAME/)),
-        lastName: headers.findIndex(h => h.toUpperCase().match(/(LAST|SUR)\s*NAME/)),
-        middleName: headers.findIndex(h => h.toUpperCase().match(/MIDDLE\s*NAME/)),
+        company: headers.findIndex(h => h.toUpperCase() === "COMPANY"),
         name: headers.findIndex(h => h.toUpperCase() === "NAME"),
-        serial: headers.findIndex(h => h.toUpperCase().includes("SERIAL")),
-        gender: headers.findIndex(h => h.toUpperCase().match(/^GENDER$/)),
-        coy: headers.findIndex(h => h.toUpperCase().match(/^(COY|COMPANY)$/)),
-        bos: headers.findIndex(h => h.toUpperCase().match(/^BOS$/)),
-        status: headers.findIndex(h => h.toUpperCase().match(/(STATUS|REMARKS)/))
+        bos: headers.findIndex(h => h.toUpperCase() === "BOS"),
+        class: headers.findIndex(h => h.toUpperCase() === "CLASS"),
+        battalion: headers.findIndex(h => h.toUpperCase() === "BATTALION"),
+        status: headers.findIndex(h => h.toUpperCase() === "STATUS")
       };
 
-      // Determine Dietary Columns: Any columns starting from index 8/9 that aren't core columns,
-      // or specifically columns whose headers contain dietary terms.
+      if (colIndices.name === -1 || colIndices.company === -1) {
+        throw new Error("Required columns ('NAME' or 'COMPANY') were not found in the spreadsheet header.");
+      }
+
+      // Determine Dietary Columns: Any column header starting with "NO "
       const parsedDietCols: string[] = [];
       const dietColIndices: { [name: string]: number } = {};
 
       headers.forEach((header, idx) => {
         if (!header) return;
         const upper = header.toUpperCase();
-        // Skip core columns
-        const isCore = [
-          "NO", "NO.", "CLASS", "FIRST NAME", "LAST NAME", "SURNAME", "MIDDLE NAME", 
-          "NAME", "SERIAL NO.", "SERIAL NUMBER", "GENDER", "COY", "COMPANY", "BOS", "STATUS", "REMARKS"
-        ].includes(upper);
-        
-        if (!isCore && idx >= 5) {
+        if (upper.startsWith("NO ")) {
           parsedDietCols.push(header);
           dietColIndices[header] = idx;
         }
@@ -193,46 +184,35 @@ export default function DashboardPage() {
 
       // Parse Cadet Records
       const parsedCadets: Cadet[] = [];
-      for (let i = headerIdx + 1; i < rows.length; i++) {
+      for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (row.length === 0 || !row[0]) continue;
+        if (row.length === 0 || !row[colIndices.name]) continue;
 
-        // Resolve Name
-        let nameStr = "";
-        if (colIndices.name !== -1 && row[colIndices.name]) {
-          nameStr = row[colIndices.name];
-        } else {
-          const first = colIndices.firstName !== -1 ? row[colIndices.firstName] : "";
-          const middle = colIndices.middleName !== -1 ? row[colIndices.middleName] : "";
-          const last = colIndices.lastName !== -1 ? row[colIndices.lastName] : "";
-          nameStr = `${first} ${middle} ${last}`.replace(/\s+/g, " ").trim();
-        }
+        const nameStr = row[colIndices.name].trim();
+        const companyStr = row[colIndices.company].trim().toUpperCase();
+        const bosStr = colIndices.bos !== -1 && row[colIndices.bos] ? row[colIndices.bos].trim().toUpperCase() : "N/A";
+        const classStr = colIndices.class !== -1 && row[colIndices.class] ? row[colIndices.class].trim().toUpperCase() : "4CL";
+        const statusStr = colIndices.status !== -1 && row[colIndices.status] ? row[colIndices.status].trim().toUpperCase() : "FULL DUTY";
 
-        if (!nameStr) continue; // Skip empty rows
-
-        const companyStr = colIndices.coy !== -1 && row[colIndices.coy] ? row[colIndices.coy].toUpperCase() : "UNASSIGNED";
-        const bosStr = colIndices.bos !== -1 && row[colIndices.bos] ? row[colIndices.bos].toUpperCase() : "N/A";
-        const classStr = colIndices.class !== -1 && row[colIndices.class] ? row[colIndices.class].toUpperCase() : "4CL";
-
-        // Diets map: check if column contains "1"
+        // Diets map: check if column contains exactly "1"
         const cadetDiets: { [dietName: string]: boolean } = {};
         parsedDietCols.forEach((dCol) => {
           const colIdx = dietColIndices[dCol];
-          const val = row[colIdx];
-          // User request: if the cell has "1", they qualify for the dietary restriction
+          const val = row[colIdx] ? row[colIdx].trim() : "";
+          // User request: if the cell has "1", they qualify for that dietary restriction
           cadetDiets[dCol] = val === "1";
         });
 
         parsedCadets.push({
-          no: colIndices.no !== -1 ? row[colIndices.no] : (i - headerIdx).toString(),
+          no: i.toString(),
           class: classStr,
           name: nameStr.toUpperCase(),
-          serialNo: colIndices.serial !== -1 ? row[colIndices.serial] : "N/A",
-          gender: colIndices.gender !== -1 ? row[colIndices.gender] : "M",
+          serialNo: "N/A", // Serial number not in new database columns
+          gender: "M", // Gender not in new database columns
           company: companyStr,
           battalion: getBattalion(companyStr),
           bos: classStr === "3CL" || classStr === "4CL" ? "N/A" : bosStr,
-          status: colIndices.status !== -1 && row[colIndices.status] ? row[colIndices.status].toUpperCase() : "FULL DUTY",
+          status: statusStr || "FULL DUTY",
           diets: cadetDiets,
         });
       }
@@ -244,8 +224,11 @@ export default function DashboardPage() {
       console.warn("Fetch failed, falling back to mock dataset:", err.message);
       setError(`Google Sheet fetch failed. Displaying fallback mock database. Error details: ${err.message}`);
       setDataSource("MOCK");
-      // Fallback variables
-      setDietColumns(["No Pork", "No Beef", "Peanut Allergy", "Vegetarian", "Halal"]);
+      setDietColumns([
+        "NO FISH", "NO PORK", "NO SEAFOOD", "NO EGG", "NO CHICKEN", "NO BLOOD", 
+        "NO FOOD PROCESSED FOOD", "NO BEANS", "NO NUTS", "NO TOFU", "NO COFFEE", 
+        "NO CHOCOLATE", "NO TOMATOES", "NO SPICY", "NO BEEF"
+      ]);
     } finally {
       setLoading(false);
     }
@@ -253,10 +236,8 @@ export default function DashboardPage() {
 
   // Filter Logic
   const filteredCadets = cadets.filter((cadet) => {
-    // Name or Serial Search
-    const matchesSearch =
-      cadet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cadet.serialNo.toLowerCase().includes(searchQuery.toLowerCase());
+    // Name Search
+    const matchesSearch = cadet.name.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Company filter
     const matchesCoy = selectedCompany === "ALL" || cadet.company === selectedCompany;
@@ -286,6 +267,8 @@ export default function DashboardPage() {
   const totalCadetsCount = filteredCadets.length;
   const bn1Count = filteredCadets.filter((c) => c.battalion === "1ST BATTALION").length;
   const bn2Count = filteredCadets.filter((c) => c.battalion === "2ND BATTALION").length;
+  const bn3Count = filteredCadets.filter((c) => c.battalion === "3RD BATTALION").length;
+  const bn4Count = filteredCadets.filter((c) => c.battalion === "4TH BATTALION").length;
   const hcCount = filteredCadets.filter((c) => c.status === "HC" || c.status.includes("HOLDING")).length;
 
   // Calculate counts for each dietary restriction (where cell is "1")
@@ -322,7 +305,7 @@ export default function DashboardPage() {
         </div>
         <div className="header-actions">
           <button className="btn btn-outline" onClick={fetchSpreadsheetData} disabled={loading}>
-            {loading ? "Refreshing..." : "Sync Database"}
+            {loading ? "Syncing..." : "Sync Database"}
           </button>
         </div>
       </header>
@@ -344,17 +327,27 @@ export default function DashboardPage() {
         <div className="stat-card">
           <h3>1st Battalion</h3>
           <div className="value">{bn1Count}</div>
-          <div className="subtext">Alfa, Bravo, Charlie, Delta</div>
+          <div className="subtext">Alfa, Bravo</div>
         </div>
         <div className="stat-card">
           <h3>2nd Battalion</h3>
           <div className="value">{bn2Count}</div>
-          <div className="subtext">Echo, Foxtrot, Golf, Hawk</div>
+          <div className="subtext">Charlie, Delta</div>
         </div>
         <div className="stat-card">
-          <h3>Holding Center (HC)</h3>
+          <h3>3rd Battalion</h3>
+          <div className="value">{bn3Count}</div>
+          <div className="subtext">Echo, Foxtrot</div>
+        </div>
+        <div className="stat-card">
+          <h3>4th Battalion</h3>
+          <div className="value">{bn4Count}</div>
+          <div className="subtext">Golf, Hawk</div>
+        </div>
+        <div className="stat-card">
+          <h3>HC Status</h3>
           <div className="value">{hcCount}</div>
-          <div className="subtext">Suspended messing status</div>
+          <div className="subtext">Holding Center</div>
         </div>
       </div>
 
@@ -362,14 +355,14 @@ export default function DashboardPage() {
       <div className="card">
         <div className="card-title">Roster Filters</div>
         <div className="filter-section">
-          {/* Name/Serial Search */}
+          {/* Name Search */}
           <div className="form-group">
             <label htmlFor="search-input">Search Cadet</label>
             <input
               id="search-input"
               type="text"
               className="input-field"
-              placeholder="Name or Serial Number..."
+              placeholder="Search by last name..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -391,8 +384,10 @@ export default function DashboardPage() {
               }}
             >
               <option value="ALL">All Battalions</option>
-              <option value="1ST BATTALION">1st Battalion</option>
-              <option value="2ND BATTALION">2nd Battalion</option>
+              <option value="1ST BATTALION">1st Battalion (Alfa/Bravo)</option>
+              <option value="2ND BATTALION">2nd Battalion (Charlie/Delta)</option>
+              <option value="3RD BATTALION">3rd Battalion (Echo/Foxtrot)</option>
+              <option value="4TH BATTALION">4th Battalion (Golf/Hawk)</option>
             </select>
           </div>
 
@@ -553,7 +548,6 @@ export default function DashboardPage() {
                 <th>No.</th>
                 <th>Class</th>
                 <th>Name</th>
-                <th>Serial No.</th>
                 <th>Coy</th>
                 <th>Battalion</th>
                 <th>BOS</th>
@@ -572,7 +566,6 @@ export default function DashboardPage() {
                       <td>{c.no}</td>
                       <td>{c.class}</td>
                       <td style={{ fontWeight: 600 }}>{c.name}</td>
-                      <td style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>{c.serialNo}</td>
                       <td>{c.company}</td>
                       <td style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>{c.battalion}</td>
                       <td>
@@ -612,7 +605,7 @@ export default function DashboardPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
+                  <td colSpan={8} style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
                     No matching cadets found in the roster database.
                   </td>
                 </tr>
