@@ -354,9 +354,10 @@ export default function DashboardPage() {
       {/* Dynamic Search & Filters Section */}
       <div className="card">
         <div className="card-title">Roster Filters</div>
-        <div className="filter-section">
-          {/* Name Search */}
-          <div className="form-group">
+        
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          {/* Name Search Row */}
+          <div className="form-group" style={{ maxWidth: "400px" }}>
             <label htmlFor="search-input">Search Cadet</label>
             <input
               id="search-input"
@@ -371,127 +372,141 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Battalion */}
+          {/* Battalion Buttons */}
           <div className="form-group">
-            <label htmlFor="bn-select">Battalion</label>
-            <select
-              id="bn-select"
-              className="input-field"
-              value={selectedBattalion}
-              onChange={(e) => {
-                setSelectedBattalion(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="ALL">All Battalions</option>
-              <option value="1ST BATTALION">1st Battalion (Alfa/Bravo)</option>
-              <option value="2ND BATTALION">2nd Battalion (Charlie/Delta)</option>
-              <option value="3RD BATTALION">3rd Battalion (Echo/Foxtrot)</option>
-              <option value="4TH BATTALION">4th Battalion (Golf/Hawk)</option>
-            </select>
-          </div>
-
-          {/* Company */}
-          <div className="form-group">
-            <label htmlFor="coy-select">Company</label>
-            <select
-              id="coy-select"
-              className="input-field"
-              value={selectedCompany}
-              onChange={(e) => {
-                setSelectedCompany(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="ALL">All Companies</option>
-              <option value="ALFA">Alfa</option>
-              <option value="BRAVO">Bravo</option>
-              <option value="CHARLIE">Charlie</option>
-              <option value="DELTA">Delta</option>
-              <option value="ECHO">Echo</option>
-              <option value="FOXTROT">Foxtrot</option>
-              <option value="GOLF">Golf</option>
-              <option value="HAWK">Hawk</option>
-            </select>
-          </div>
-
-          {/* Class */}
-          <div className="form-group">
-            <label htmlFor="class-select">Class</label>
-            <select
-              id="class-select"
-              className="input-field"
-              value={selectedClass}
-              onChange={(e) => {
-                setSelectedClass(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="ALL">All Classes</option>
-              <option value="1CL">1CL (First Class)</option>
-              <option value="2CL">2CL (Second Class)</option>
-              <option value="3CL">3CL (Third Class)</option>
-              <option value="4CL">4CL (Fourth Class)</option>
-            </select>
-          </div>
-
-          {/* BOS */}
-          <div className="form-group">
-            <label htmlFor="bos-select">Branch of Service</label>
-            <select
-              id="bos-select"
-              className="input-field"
-              value={selectedBos}
-              onChange={(e) => {
-                setSelectedBos(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="ALL">All Branches</option>
-              <option value="PA">PA (Army)</option>
-              <option value="PAF">PAF (Airforce)</option>
-              <option value="PN">PN (Navy)</option>
-              <option value="N/A">N/A (3rd/4th Class)</option>
-            </select>
-          </div>
-
-          {/* Status */}
-          <div className="form-group">
-            <label htmlFor="status-select">Status</label>
-            <select
-              id="status-select"
-              className="input-field"
-              value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="FULL DUTY">Full Duty</option>
-              <option value="HC">Holding Center (HC)</option>
-            </select>
-          </div>
-
-          {/* Dietary Restrictions filter */}
-          <div className="form-group">
-            <label htmlFor="diet-filter-select">Special Diet Filter</label>
-            <select
-              id="diet-filter-select"
-              className="input-field"
-              value={selectedDiet}
-              onChange={(e) => {
-                setSelectedDiet(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="ALL">All Diets</option>
-              {dietColumns.map((dCol) => (
-                <option key={dCol} value={dCol}>
-                  {dCol}
-                </option>
+            <label>Battalion</label>
+            <div className="filter-button-group">
+              {[
+                { val: "ALL", label: "All Battalions" },
+                { val: "1ST BATTALION", label: "1st Bn (Alfa/Bravo)" },
+                { val: "2ND BATTALION", label: "2nd Bn (Charlie/Delta)" },
+                { val: "3RD BATTALION", label: "3rd Bn (Echo/Foxtrot)" },
+                { val: "4TH BATTALION", label: "4th Bn (Golf/Hawk)" }
+              ].map((bn) => (
+                <button
+                  key={bn.val}
+                  type="button"
+                  className={`filter-btn ${selectedBattalion === bn.val ? "active" : ""}`}
+                  onClick={() => {
+                    setSelectedBattalion(bn.val);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {bn.label}
+                </button>
               ))}
-            </select>
+            </div>
+          </div>
+
+          {/* Company Buttons */}
+          <div className="form-group">
+            <label>Company</label>
+            <div className="filter-button-group">
+              {[
+                { val: "ALL", label: "All Companies" },
+                { val: "ALFA", label: "Alfa" },
+                { val: "BRAVO", label: "Bravo" },
+                { val: "CHARLIE", label: "Charlie" },
+                { val: "DELTA", label: "Delta" },
+                { val: "ECHO", label: "Echo" },
+                { val: "FOXTROT", label: "Foxtrot" },
+                { val: "GOLF", label: "Golf" },
+                { val: "HAWK", label: "Hawk" }
+              ].map((coy) => (
+                <button
+                  key={coy.val}
+                  type="button"
+                  className={`filter-btn ${selectedCompany === coy.val ? "active" : ""}`}
+                  onClick={() => {
+                    setSelectedCompany(coy.val);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {coy.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Class & BOS & Status Buttons Side by Side */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
+            
+            {/* Class Buttons */}
+            <div className="form-group" style={{ flex: "1 1 250px" }}>
+              <label>Class</label>
+              <div className="filter-button-group">
+                {[
+                  { val: "ALL", label: "All Classes" },
+                  { val: "1CL", label: "1CL" },
+                  { val: "2CL", label: "2CL" },
+                  { val: "3CL", label: "3CL" },
+                  { val: "4CL", label: "4CL" }
+                ].map((cls) => (
+                  <button
+                    key={cls.val}
+                    type="button"
+                    className={`filter-btn ${selectedClass === cls.val ? "active" : ""}`}
+                    onClick={() => {
+                      setSelectedClass(cls.val);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {cls.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* BOS Buttons */}
+            <div className="form-group" style={{ flex: "1 1 250px" }}>
+              <label>Branch of Service</label>
+              <div className="filter-button-group">
+                {[
+                  { val: "ALL", label: "All Branches" },
+                  { val: "PA", label: "PA (Army)" },
+                  { val: "PAF", label: "PAF (Air Force)" },
+                  { val: "PN", label: "PN (Navy)" },
+                  { val: "N/A", label: "N/A" }
+                ].map((bos) => (
+                  <button
+                    key={bos.val}
+                    type="button"
+                    className={`filter-btn ${selectedBos === bos.val ? "active" : ""}`}
+                    onClick={() => {
+                      setSelectedBos(bos.val);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {bos.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status Buttons */}
+            <div className="form-group" style={{ flex: "1 1 200px" }}>
+              <label>Status</label>
+              <div className="filter-button-group">
+                {[
+                  { val: "ALL", label: "All Statuses" },
+                  { val: "FULL DUTY", label: "Full Duty" },
+                  { val: "HC", label: "HC (Holding)" }
+                ].map((stat) => (
+                  <button
+                    key={stat.val}
+                    type="button"
+                    className={`filter-btn ${selectedStatus === stat.val ? "active" : ""}`}
+                    onClick={() => {
+                      setSelectedStatus(stat.val);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {stat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -500,21 +515,40 @@ export default function DashboardPage() {
       <div className="card" style={{ borderColor: "var(--accent)" }}>
         <div className="card-title">
           <span>Kitchen Cooking Shares Summary</span>
-          <span className="badge badge-diet">Kitchen Dispatch Copy</span>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {selectedDiet !== "ALL" && (
+              <button
+                className="btn btn-outline"
+                style={{ padding: "4px 8px", fontSize: "0.75rem", border: "1px solid var(--primary)", cursor: "pointer" }}
+                onClick={() => { setSelectedDiet("ALL"); setCurrentPage(1); }}
+              >
+                Clear Diet Filter
+              </button>
+            )}
+            <span className="badge badge-diet">Kitchen Dispatch Copy</span>
+          </div>
         </div>
         <p style={{ fontSize: "0.85rem", color: "var(--secondary-light)", marginBottom: "1rem" }}>
-          This summary calculates the exact dietary shares to prepare for the kitchen based on the active search filters.
+          This summary calculates the exact dietary shares to prepare for the kitchen. **Click any card below to filter the roster list to those specific cadets!**
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
           {dietColumns.map((dietName) => {
             const count = dietCounts[dietName] || 0;
+            const isActive = selectedDiet === dietName;
             return (
               <div
                 key={dietName}
+                className={`diet-card-clickable ${isActive ? "active" : ""}`}
+                onClick={() => {
+                  if (isActive) {
+                    setSelectedDiet("ALL"); // Click again to reset
+                  } else {
+                    setSelectedDiet(dietName); // Set filter
+                  }
+                  setCurrentPage(1);
+                }}
                 style={{
-                  border: "1px solid var(--accent-light)",
-                  backgroundColor: "#FCF9F2",
                   borderRadius: "12px",
                   padding: "1rem",
                   display: "flex",
@@ -523,12 +557,14 @@ export default function DashboardPage() {
                 }}
               >
                 <div>
-                  <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "#7D5B18", display: "block" }}>
+                  <span style={{ fontWeight: 700, fontSize: "0.95rem", color: isActive ? "var(--primary)" : "#7D5B18", display: "block" }}>
                     {dietName}
                   </span>
-                  <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>Active shares</span>
+                  <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
+                    {isActive ? "Active Filter" : "Click to view shares"}
+                  </span>
                 </div>
-                <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--accent)" }}>
+                <div style={{ fontSize: "1.75rem", fontWeight: 800, color: isActive ? "var(--primary)" : "var(--accent)" }}>
                   {count}
                 </div>
               </div>
