@@ -58,6 +58,11 @@ export default function DashboardPage() {
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [selectedDiet, setSelectedDiet] = useState("ALL");
 
+  // Modal States for Battalion summaries
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalCadets, setModalCadets] = useState<Cadet[]>([]);
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
@@ -84,6 +89,16 @@ export default function DashboardPage() {
       return "4TH BATTALION";
     }
     return "OTHER / UNKNOWN";
+  };
+
+  // Helper to open modal populated with specific battalion & diet list
+  const openDietModal = (battalionName: string, dietName: string) => {
+    const list = cadets.filter(
+      (c) => c.battalion === battalionName && c.diets[dietName] === true
+    );
+    setModalTitle(`${battalionName} - ${dietName} (${list.length} Cadets)`);
+    setModalCadets(list);
+    setIsModalOpen(true);
   };
 
   // Helper to parse CSV properly handling quotes and commas
@@ -573,6 +588,49 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Battalion Summary Breakdown */}
+      <div className="card">
+        <div className="card-title">Battalion Cooking Shares Breakdown</div>
+        <p style={{ fontSize: "0.85rem", color: "var(--secondary-light)", marginBottom: "1rem" }}>
+          Displays active special diet counts divided by battalion. **Click on any diet row to view the list of cadets.**
+        </p>
+        
+        <div className="battalion-summary-grid">
+          {["1ST BATTALION", "2ND BATTALION", "3RD BATTALION", "4TH BATTALION"].map((bn) => {
+            const totalBnShares = cadets.filter(c => c.battalion === bn).length;
+            return (
+              <div key={bn} className="battalion-card">
+                <h4>{bn}</h4>
+                <div className="battalion-shares-count">
+                  {totalBnShares} <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "var(--muted)" }}>Total Shares</span>
+                </div>
+                
+                <div className="battalion-diet-list">
+                  {dietColumns.map((dietName) => {
+                    const count = cadets.filter(c => c.battalion === bn && c.diets[dietName] === true).length;
+                    if (count === 0) return null;
+                    
+                    return (
+                      <div 
+                        key={dietName} 
+                        className="battalion-diet-item"
+                        onClick={() => openDietModal(bn, dietName)}
+                      >
+                        <span>{dietName.toLowerCase()}</span>
+                        <span className="badge badge-diet" style={{ fontSize: "0.8rem" }}>{count}</span>
+                      </div>
+                    );
+                  })}
+                  {dietColumns.every(d => cadets.filter(c => c.battalion === bn && c.diets[d] === true).length === 0) && (
+                    <span style={{ fontSize: "0.85rem", color: "var(--muted)", fontStyle: "italic" }}>No special diets</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Cadet Roster Table */}
       <div className="card">
         <div className="card-title">Cadet Roster</div>
@@ -677,6 +735,51 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Diet List Modal */}
+      {isModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{modalTitle}</h3>
+              <button className="modal-close-x" onClick={() => setIsModalOpen(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              {modalCadets.length > 0 ? (
+                <div className="table-container" style={{ maxHeight: "300px", overflowY: "auto" }}>
+                  <table style={{ width: "100%" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ padding: "8px 12px", fontSize: "0.8rem" }}>Class</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.8rem" }}>Name</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.8rem" }}>Company</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.8rem" }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {modalCadets.map((c, idx) => (
+                        <tr key={c.name + idx} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                          <td style={{ padding: "8px 12px", fontSize: "0.85rem" }}>{c.class}</td>
+                          <td style={{ padding: "8px 12px", fontSize: "0.85rem", fontWeight: 600 }}>{c.name}</td>
+                          <td style={{ padding: "8px 12px", fontSize: "0.85rem" }}>{c.company}</td>
+                          <td style={{ padding: "8px 12px", fontSize: "0.85rem" }}>
+                            {c.status === "HC" || c.status.includes("HOLDING") ? "HC" : c.status}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p style={{ textAlign: "center", color: "var(--muted)", padding: "1rem" }}>No cadets found for this diet.</p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-accent" style={{ padding: "8px 16px" }} onClick={() => setIsModalOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
