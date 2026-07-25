@@ -1,0 +1,21 @@
+# Next.js build and cache folders
+.next/
+out/
+build/
+
+# Node modules
+node_modules/
+
+# Local environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vercel deployment folder
+.vercel/
