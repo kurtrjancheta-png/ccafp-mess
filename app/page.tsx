@@ -41,6 +41,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<"MOCK" | "LIVE">("MOCK");
+  const [greeting, setGreeting] = useState("Good day, Officer");
   
   // Default dietary column names from your database sheet
   const [dietColumns, setDietColumns] = useState<string[]>([
@@ -67,16 +68,16 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  // Fetch Excel data on mount
+  // Greeting Setup & Data Fetch on mount
   useEffect(() => {
     fetchSpreadsheetData();
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting("Good morning, Officer");
+    else if (hour < 18) setGreeting("Good afternoon, Officer");
+    else setGreeting("Good evening, Officer");
   }, []);
 
   // Map company name to battalion (as requested)
-  // Alfa, Bravo -> 1st Battalion
-  // Charlie, Delta -> 2nd Battalion
-  // Echo, Foxtrot -> 3rd Battalion
-  // Golf, Hawk -> 4th Battalion
   const getBattalion = (co: string): string => {
     const cleanCo = co.trim().toUpperCase();
     if (cleanCo === "ALFA" || cleanCo === "BRAVO" || cleanCo === "A" || cleanCo === "B") {
@@ -148,7 +149,6 @@ export default function DashboardPage() {
   const fetchSpreadsheetData = async () => {
     const sheetId = process.env.NEXT_PUBLIC_SPREADSHEET_ID || "14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ";
     const gid = process.env.NEXT_PUBLIC_DATABASE_GID || "482780671";
-    // Add cache-busting timestamp to prevent browser cache
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}&t=${Date.now()}`;
 
     setLoading(true);
@@ -167,10 +167,8 @@ export default function DashboardPage() {
         throw new Error("Spreadsheet contains insufficient rows.");
       }
 
-      // Headers should be in the very first row
       const headers = rows[0].map(h => h.trim());
 
-      // Identify Standard Columns
       const colIndices = {
         company: headers.findIndex(h => h.toUpperCase() === "COMPANY"),
         name: headers.findIndex(h => h.toUpperCase() === "NAME"),
@@ -181,10 +179,9 @@ export default function DashboardPage() {
       };
 
       if (colIndices.name === -1 || colIndices.company === -1) {
-        throw new Error("Required columns ('NAME' or 'COMPANY') were not found in the spreadsheet header.");
+        throw new Error("Required columns ('NAME' or 'COMPANY') were not found.");
       }
 
-      // Determine Dietary Columns: Any column header starting with "NO "
       const parsedDietCols: string[] = [];
       const dietColIndices: { [name: string]: number } = {};
 
@@ -197,7 +194,6 @@ export default function DashboardPage() {
         }
       });
 
-      // Parse Cadet Records
       const parsedCadets: Cadet[] = [];
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -209,12 +205,10 @@ export default function DashboardPage() {
         const classStr = colIndices.class !== -1 && row[colIndices.class] ? row[colIndices.class].trim().toUpperCase() : "4CL";
         const statusStr = colIndices.status !== -1 && row[colIndices.status] ? row[colIndices.status].trim().toUpperCase() : "FULL DUTY";
 
-        // Diets map: check if column contains exactly "1"
         const cadetDiets: { [dietName: string]: boolean } = {};
         parsedDietCols.forEach((dCol) => {
           const colIdx = dietColIndices[dCol];
           const val = row[colIdx] ? row[colIdx].trim() : "";
-          // User request: if the cell has "1", they qualify for that dietary restriction
           cadetDiets[dCol] = val === "1";
         });
 
@@ -222,8 +216,8 @@ export default function DashboardPage() {
           no: i.toString(),
           class: classStr,
           name: nameStr.toUpperCase(),
-          serialNo: "N/A", // Serial number not in new database columns
-          gender: "M", // Gender not in new database columns
+          serialNo: "N/A",
+          gender: "M",
           company: companyStr,
           battalion: getBattalion(companyStr),
           bos: classStr === "3CL" || classStr === "4CL" ? "N/A" : bosStr,
@@ -237,7 +231,7 @@ export default function DashboardPage() {
       setDataSource("LIVE");
     } catch (err: any) {
       console.warn("Fetch failed, falling back to mock dataset:", err.message);
-      setError(`Google Sheet fetch failed. Displaying fallback mock database. Error details: ${err.message}`);
+      setError(`Google Sheet connection unavailable. Displaying fallback mock database.`);
       setDataSource("MOCK");
       setDietColumns([
         "NO FISH", "NO PORK", "NO SEAFOOD", "NO EGG", "NO CHICKEN", "NO BLOOD", 
@@ -251,28 +245,15 @@ export default function DashboardPage() {
 
   // Filter Logic
   const filteredCadets = cadets.filter((cadet) => {
-    // Name Search
     const matchesSearch = cadet.name.toLowerCase().includes(searchQuery.toLowerCase());
-
-    // Company filter
     const matchesCoy = selectedCompany === "ALL" || cadet.company === selectedCompany;
-
-    // Battalion filter
     const matchesBn = selectedBattalion === "ALL" || cadet.battalion === selectedBattalion;
-
-    // Class filter
     const matchesClass = selectedClass === "ALL" || cadet.class === selectedClass;
-
-    // BOS filter
     const matchesBos = selectedBos === "ALL" || cadet.bos === selectedBos;
-
-    // Status filter
     const matchesStatus =
       selectedStatus === "ALL" ||
       (selectedStatus === "HC" && (cadet.status === "HC" || cadet.status.includes("HOLDING"))) ||
       (selectedStatus === "FULL DUTY" && cadet.status === "FULL DUTY");
-
-    // Diet filter
     const matchesDiet = selectedDiet === "ALL" || cadet.diets[selectedDiet] === true;
 
     return matchesSearch && matchesCoy && matchesBn && matchesClass && matchesBos && matchesStatus && matchesDiet;
@@ -286,7 +267,7 @@ export default function DashboardPage() {
   const bn4Count = filteredCadets.filter((c) => c.battalion === "4TH BATTALION").length;
   const hcCount = filteredCadets.filter((c) => c.status === "HC" || c.status.includes("HOLDING")).length;
 
-  // Calculate counts for each dietary restriction (where cell is "1")
+  // Calculate counts for each dietary restriction
   const dietCounts: { [dietName: string]: number } = {};
   dietColumns.forEach((dietName) => {
     dietCounts[dietName] = filteredCadets.filter((c) => c.diets[dietName] === true).length;
@@ -304,81 +285,97 @@ export default function DashboardPage() {
     }
   };
 
+  // Group diets into categories
+  const allergenDiets = ["NO FISH", "NO SEAFOOD", "NO EGG", "NO CHICKEN", "NO BEANS", "NO NUTS", "NO TOFU", "NO TOMATOES", "NO SPICY"];
+  const preferenceDiets = ["NO PORK", "NO BEEF", "NO BLOOD", "NO FOOD PROCESSED FOOD", "NO COFFEE", "NO CHOCOLATE"];
+
+  const categorizedDiets = {
+    allergens: dietColumns.filter(d => allergenDiets.includes(d.toUpperCase())),
+    preferences: dietColumns.filter(d => preferenceDiets.includes(d.toUpperCase()) || !allergenDiets.includes(d.toUpperCase())),
+  };
+
   return (
-    <div>
-      {/* Page Header */}
-      <header className="page-header">
-        <div className="page-title">
-          <h2>Mess Disposition Dashboard</h2>
+    <div className="animate-fade-in">
+      {/* Premium Hero Banner */}
+      <header className="hero-header-card animate-fade-in animate-stagger-1">
+        <div className="hero-text">
+          <h2>{greeting}</h2>
           <p>
-            Roster database is loaded from your Google Sheet (
-            <span style={{ fontWeight: 700, color: dataSource === "LIVE" ? "var(--success)" : "var(--primary)" }}>
-              {dataSource === "LIVE" ? "Live Database Connection" : "Demo Mode / Fallback Database"}
+            Mess Disposition System connected to:{" "}
+            <span style={{ fontWeight: 800, textDecoration: "underline", color: dataSource === "LIVE" ? "var(--success)" : "var(--accent)" }}>
+              {dataSource === "LIVE" ? "Live Cadet Database" : "Demo Mode / Offline Roster"}
             </span>
-            ).
           </p>
         </div>
         <div className="header-actions">
-          <button className="btn btn-outline" onClick={fetchSpreadsheetData} disabled={loading}>
-            {loading ? "Syncing..." : "Sync Database"}
+          <button className="btn btn-accent" onClick={fetchSpreadsheetData} disabled={loading}>
+            {loading ? (
+              <>
+                <svg className="animate-spin" style={{ width: "16px", height: "16px", marginRight: "6px" }} fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Syncing...
+              </>
+            ) : "Sync Database"}
           </button>
         </div>
       </header>
 
       {/* Error alert */}
       {error && (
-        <div className="alert-success" style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA", color: "#991B1B", marginBottom: "2rem" }}>
-          <strong>Notice:</strong> {error}
+        <div className="alert-success animate-fade-in" style={{ backgroundColor: "var(--warning-light)", border: "1px solid var(--warning)", color: "var(--secondary)", marginBottom: "2rem" }}>
+          <strong>Offline Mode:</strong> {error}
         </div>
       )}
 
       {/* Stats Summary Panel */}
-      <div className="stats-grid">
+      <div className="stats-grid animate-fade-in animate-stagger-1">
         <div className="stat-card">
           <h3>Total Roster</h3>
           <div className="value">{totalCadetsCount}</div>
-          <div className="subtext">Active Filters matched</div>
+          <div className="subtext">Active filter match</div>
         </div>
         <div className="stat-card">
           <h3>1st Battalion</h3>
           <div className="value">{bn1Count}</div>
-          <div className="subtext">Alfa, Bravo</div>
+          <div className="subtext">Alfa, Bravo Co.</div>
         </div>
         <div className="stat-card">
           <h3>2nd Battalion</h3>
           <div className="value">{bn2Count}</div>
-          <div className="subtext">Charlie, Delta</div>
+          <div className="subtext">Charlie, Delta Co.</div>
         </div>
         <div className="stat-card">
           <h3>3rd Battalion</h3>
           <div className="value">{bn3Count}</div>
-          <div className="subtext">Echo, Foxtrot</div>
+          <div className="subtext">Echo, Foxtrot Co.</div>
         </div>
         <div className="stat-card">
           <h3>4th Battalion</h3>
           <div className="value">{bn4Count}</div>
-          <div className="subtext">Golf, Hawk</div>
+          <div className="subtext">Golf, Hawk Co.</div>
         </div>
         <div className="stat-card">
-          <h3>HC Status</h3>
+          <h3>Holding Center</h3>
           <div className="value">{hcCount}</div>
-          <div className="subtext">Holding Center</div>
+          <div className="subtext">HC Status Cadets</div>
         </div>
       </div>
 
       {/* Dynamic Search & Filters Section */}
-      <div className="card">
+      <div className="card animate-fade-in animate-stagger-2">
         <div className="card-title">Roster Filters</div>
         
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           {/* Name Search Row */}
-          <div className="form-group" style={{ maxWidth: "400px" }}>
+          <div className="form-group" style={{ maxWidth: "450px" }}>
             <label htmlFor="search-input">Search Cadet</label>
             <input
               id="search-input"
               type="text"
               className="input-field"
-              placeholder="Search by last name..."
+              placeholder="Search by cadet last name..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -443,15 +440,14 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Class & BOS & Status Buttons Side by Side */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
-            
+          {/* Class & BOS & Status Buttons */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem" }}>
             {/* Class Buttons */}
-            <div className="form-group" style={{ flex: "1 1 250px" }}>
+            <div className="form-group" style={{ flex: "1 1 200px" }}>
               <label>Class</label>
               <div className="filter-button-group">
                 {[
-                  { val: "ALL", label: "All Classes" },
+                  { val: "ALL", label: "All" },
                   { val: "1CL", label: "1CL" },
                   { val: "2CL", label: "2CL" },
                   { val: "3CL", label: "3CL" },
@@ -477,10 +473,10 @@ export default function DashboardPage() {
               <label>Branch of Service</label>
               <div className="filter-button-group">
                 {[
-                  { val: "ALL", label: "All Branches" },
-                  { val: "PA", label: "PA (Army)" },
-                  { val: "PAF", label: "PAF (Air Force)" },
-                  { val: "PN", label: "PN (Navy)" },
+                  { val: "ALL", label: "All" },
+                  { val: "PA", label: "Army (PA)" },
+                  { val: "PAF", label: "Air Force (PAF)" },
+                  { val: "PN", label: "Navy (PN)" },
                   { val: "N/A", label: "N/A" }
                 ].map((bos) => (
                   <button
@@ -521,90 +517,130 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
       {/* Kitchen Summary Section */}
-      <div className="card" style={{ borderColor: "var(--accent)" }}>
+      <div className="card animate-fade-in animate-stagger-2" style={{ borderLeft: "4px solid var(--accent)" }}>
         <div className="card-title">
           <span>Kitchen Cooking Shares Summary</span>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             {selectedDiet !== "ALL" && (
               <button
                 className="btn btn-outline"
-                style={{ padding: "4px 8px", fontSize: "0.75rem", border: "1px solid var(--primary)", cursor: "pointer" }}
+                style={{ padding: "4px 8px", fontSize: "0.75rem", cursor: "pointer" }}
                 onClick={() => { setSelectedDiet("ALL"); setCurrentPage(1); }}
               >
                 Clear Diet Filter
               </button>
             )}
-            <span className="badge badge-diet">Kitchen Dispatch Copy</span>
+            <span className="badge badge-diet">Kitchen Dispatch Roster</span>
           </div>
         </div>
-        <p style={{ fontSize: "0.85rem", color: "var(--secondary-light)", marginBottom: "1rem" }}>
-          This summary calculates the exact dietary shares to prepare for the kitchen. **Click any card below to filter the roster list to those specific cadets!**
+        <p style={{ fontSize: "0.85rem", color: "var(--secondary-light)", marginBottom: "1.5rem" }}>
+          Calculates dietary portions for active cadets. Click any item below to filter the Cadet Roster list below.
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-          {dietColumns.map((dietName) => {
-            const count = dietCounts[dietName] || 0;
-            const isActive = selectedDiet === dietName;
-            return (
-              <div
-                key={dietName}
-                className={`diet-card-clickable ${isActive ? "active" : ""}`}
-                onClick={() => {
-                  if (isActive) {
-                    setSelectedDiet("ALL"); // Click again to reset
-                  } else {
-                    setSelectedDiet(dietName); // Set filter
-                  }
-                  setCurrentPage(1);
-                }}
-                style={{
-                  borderRadius: "12px",
-                  padding: "1rem",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div>
-                  <span style={{ fontWeight: 700, fontSize: "0.95rem", color: isActive ? "var(--primary)" : "#7D5B18", display: "block" }}>
-                    {dietName}
-                  </span>
-                  <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
-                    {isActive ? "Active Filter" : "Click to view shares"}
-                  </span>
-                </div>
-                <div style={{ fontSize: "1.75rem", fontWeight: 800, color: isActive ? "var(--primary)" : "var(--accent)" }}>
-                  {count}
-                </div>
+        {/* Categorized Diets (Allergies vs Preferences) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          
+          {/* Allergies / Medical Category */}
+          {categorizedDiets.allergens.length > 0 && (
+            <div className="diet-category-section">
+              <div className="diet-category-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: "16px", height: "16px" }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Medical & Allergens
               </div>
-            );
-          })}
+              <div className="diet-category-grid">
+                {categorizedDiets.allergens.map((dietName) => {
+                  const count = dietCounts[dietName] || 0;
+                  const isActive = selectedDiet === dietName;
+                  return (
+                    <div
+                      key={dietName}
+                      className={`diet-card-clickable ${isActive ? "active" : ""}`}
+                      onClick={() => {
+                        setSelectedDiet(isActive ? "ALL" : dietName);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <div className="diet-info">
+                        <span className="diet-label">{dietName}</span>
+                        <span className="diet-help">{isActive ? "Filter active" : "View roster"}</span>
+                      </div>
+                      <div className="diet-val">{count}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Religious & Preferences Category */}
+          {categorizedDiets.preferences.length > 0 && (
+            <div className="diet-category-section">
+              <div className="diet-category-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: "16px", height: "16px" }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                Religious & Food Restrictions
+              </div>
+              <div className="diet-category-grid">
+                {categorizedDiets.preferences.map((dietName) => {
+                  const count = dietCounts[dietName] || 0;
+                  const isActive = selectedDiet === dietName;
+                  return (
+                    <div
+                      key={dietName}
+                      className={`diet-card-clickable ${isActive ? "active" : ""}`}
+                      onClick={() => {
+                        setSelectedDiet(isActive ? "ALL" : dietName);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <div className="diet-info">
+                        <span className="diet-label">{dietName}</span>
+                        <span className="diet-help">{isActive ? "Filter active" : "View roster"}</span>
+                      </div>
+                      <div className="diet-val">{count}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Battalion Summary Breakdown */}
-      <div className="card">
+      <div className="card animate-fade-in animate-stagger-3">
         <div className="card-title">Battalion Cooking Shares Breakdown</div>
-        <p style={{ fontSize: "0.85rem", color: "var(--secondary-light)", marginBottom: "1rem" }}>
-          Displays active special diet counts divided by battalion. **Click on any diet row to view the list of cadets.**
+        <p style={{ fontSize: "0.85rem", color: "var(--secondary-light)", marginBottom: "1.25rem" }}>
+          Active special diets breakdown per battalion with percentage gauges. Click a category to view the cadet roster in detail.
         </p>
         
         <div className="battalion-summary-grid">
           {["1ST BATTALION", "2ND BATTALION", "3RD BATTALION", "4TH BATTALION"].map((bn) => {
             const totalBnShares = cadets.filter(c => c.battalion === bn).length;
+            // Count of cadets with at least 1 diet restriction
+            const specialBnShares = cadets.filter(c => c.battalion === bn && Object.values(c.diets).some(v => v === true)).length;
+            const percent = totalBnShares > 0 ? Math.round((specialBnShares / totalBnShares) * 100) : 0;
+
             return (
               <div key={bn} className="battalion-card">
                 <h4>{bn}</h4>
                 <div className="battalion-shares-count">
-                  {totalBnShares} <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "var(--muted)" }}>Total Shares</span>
+                  {specialBnShares} <span>Special Diets ({percent}%)</span>
                 </div>
                 
+                {/* Visual progress bar gauge */}
+                <div className="meter-container" title={`${percent}% of ${bn} has dietary restrictions`}>
+                  <div className="meter-fill" style={{ width: `${percent}%` }}></div>
+                </div>
+
                 <div className="battalion-diet-list">
                   {dietColumns.map((dietName) => {
                     const count = cadets.filter(c => c.battalion === bn && c.diets[dietName] === true).length;
@@ -616,13 +652,13 @@ export default function DashboardPage() {
                         className="battalion-diet-item"
                         onClick={() => openDietModal(bn, dietName)}
                       >
-                        <span>{dietName.toLowerCase()}</span>
-                        <span className="badge badge-diet" style={{ fontSize: "0.8rem" }}>{count}</span>
+                        <span>{dietName}</span>
+                        <span className="badge badge-diet" style={{ fontSize: "0.75rem" }}>{count}</span>
                       </div>
                     );
                   })}
                   {dietColumns.every(d => cadets.filter(c => c.battalion === bn && c.diets[d] === true).length === 0) && (
-                    <span style={{ fontSize: "0.85rem", color: "var(--muted)", fontStyle: "italic" }}>No special diets</span>
+                    <span style={{ fontSize: "0.8rem", color: "var(--muted)", fontStyle: "italic", textAlign: "center", display: "block" }}>No special diets registered</span>
                   )}
                 </div>
               </div>
@@ -632,8 +668,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Cadet Roster Table */}
-      <div className="card">
-        <div className="card-title">Cadet Roster</div>
+      <div className="card animate-fade-in animate-stagger-3">
+        <div className="card-title">Cadet Roster Database</div>
 
         <div className="table-container">
           <table>
@@ -652,30 +688,31 @@ export default function DashboardPage() {
             <tbody>
               {currentItems.length > 0 ? (
                 currentItems.map((c) => {
-                  // Find diet columns that have "1" (true)
                   const activeDiets = dietColumns.filter((dName) => c.diets[dName] === true);
 
                   return (
                     <tr key={c.no + c.name}>
                       <td>{c.no}</td>
                       <td>{c.class}</td>
-                      <td style={{ fontWeight: 600 }}>{c.name}</td>
+                      <td style={{ fontWeight: 700, color: "var(--secondary)" }}>{c.name}</td>
                       <td>{c.company}</td>
-                      <td style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>{c.battalion}</td>
+                      <td style={{ fontSize: "0.75rem", textTransform: "uppercase" }}>{c.battalion}</td>
                       <td>
-                        <span
-                          className={`badge ${
-                            c.bos === "PA"
-                              ? "badge-army"
-                              : c.bos === "PAF"
-                              ? "badge-airforce"
-                              : c.bos === "PN"
-                              ? "badge-navy"
-                              : ""
-                          }`}
-                        >
-                          {c.bos === "N/A" ? "" : c.bos}
-                        </span>
+                        {c.bos !== "N/A" && (
+                          <span
+                            className={`badge ${
+                              c.bos === "PA"
+                                ? "badge-army"
+                                : c.bos === "PAF"
+                                ? "badge-airforce"
+                                : c.bos === "PN"
+                                ? "badge-navy"
+                                : ""
+                            }`}
+                          >
+                            {c.bos}
+                          </span>
+                        )}
                       </td>
                       <td>
                         {c.status === "HC" || c.status.includes("HOLDING") ? (
@@ -687,11 +724,11 @@ export default function DashboardPage() {
                       <td>
                         <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
                           {activeDiets.map((d) => (
-                            <span key={d} className="badge badge-diet" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                            <span key={d} className="badge badge-diet" style={{ fontSize: "0.65rem", padding: "1px 6px" }}>
                               {d}
                             </span>
                           ))}
-                          {activeDiets.length === 0 && <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>None</span>}
+                          {activeDiets.length === 0 && <span style={{ color: "var(--muted)", fontSize: "0.8rem" }}>None</span>}
                         </div>
                       </td>
                     </tr>
@@ -711,13 +748,13 @@ export default function DashboardPage() {
         {/* Pagination controls */}
         {totalPages > 1 && (
           <div className="pagination">
-            <span style={{ fontSize: "0.85rem", color: "var(--secondary-light)" }}>
-              Page {currentPage} of {totalPages} (Total: {filteredCadets.length} entries)
+            <span style={{ fontSize: "0.8rem", color: "var(--secondary-light)" }}>
+              Page {currentPage} of {totalPages} ({filteredCadets.length} entries matched)
             </span>
             <div style={{ display: "flex", gap: "6px" }}>
               <button
                 className="btn btn-outline"
-                style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                style={{ padding: "6px 12px", fontSize: "0.75rem" }}
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
               >
@@ -725,7 +762,7 @@ export default function DashboardPage() {
               </button>
               <button
                 className="btn btn-outline"
-                style={{ padding: "6px 12px", fontSize: "0.8rem" }}
+                style={{ padding: "6px 12px", fontSize: "0.75rem" }}
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
               >
@@ -750,19 +787,19 @@ export default function DashboardPage() {
                   <table style={{ width: "100%" }}>
                     <thead>
                       <tr>
-                        <th style={{ padding: "8px 12px", fontSize: "0.8rem" }}>Class</th>
-                        <th style={{ padding: "8px 12px", fontSize: "0.8rem" }}>Name</th>
-                        <th style={{ padding: "8px 12px", fontSize: "0.8rem" }}>Company</th>
-                        <th style={{ padding: "8px 12px", fontSize: "0.8rem" }}>Status</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.75rem" }}>Class</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.75rem" }}>Name</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.75rem" }}>Company</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.75rem" }}>Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {modalCadets.map((c, idx) => (
                         <tr key={c.name + idx} style={{ borderBottom: "1px solid var(--border-color)" }}>
-                          <td style={{ padding: "8px 12px", fontSize: "0.85rem" }}>{c.class}</td>
-                          <td style={{ padding: "8px 12px", fontSize: "0.85rem", fontWeight: 600 }}>{c.name}</td>
-                          <td style={{ padding: "8px 12px", fontSize: "0.85rem" }}>{c.company}</td>
-                          <td style={{ padding: "8px 12px", fontSize: "0.85rem" }}>
+                          <td style={{ padding: "8px 12px", fontSize: "0.8rem" }}>{c.class}</td>
+                          <td style={{ padding: "8px 12px", fontSize: "0.8rem", fontWeight: 700, color: "var(--secondary)" }}>{c.name}</td>
+                          <td style={{ padding: "8px 12px", fontSize: "0.8rem" }}>{c.company}</td>
+                          <td style={{ padding: "8px 12px", fontSize: "0.8rem" }}>
                             {c.status === "HC" || c.status.includes("HOLDING") ? "HC" : c.status}
                           </td>
                         </tr>

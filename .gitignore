@@ -19,3 +19,5 @@ yarn-error.log*
 
 # Vercel deployment folder
 .vercel/
+
+.vercel
