@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 // Types matching the project structure
 interface Cadet {
@@ -54,9 +55,8 @@ interface CompanyFormRow {
 
 // Fallback Mock data for Disseminations history
 const MOCK_DISSEMINATIONS: DisseminationRecord[] = [
-  // LUNCH for Today (based on typical roster counts)
-  { date: "2026-07-26", meal: "LUNCH", company: "ALFA", battalion: "1ST BATTALION", totalStrength: 105, present: 98, excused: 7, hc: 3, sickBay: 1, hospital: 1, duty: 1, leave: 1, otherExcused: 0, dietsTotal: 12, diets: { "NO PORK": 6, "NO FISH": 3, "NO SEAFOOD": 2, "NO BEEF": 1, "NO EGG": 1, "NO CHICKEN": 1 }, timestamp: "2026-07-26 11:30:00" },
-  { date: "2026-07-26", meal: "LUNCH", company: "BRAVO", battalion: "1ST BATTALION", totalStrength: 110, present: 106, excused: 4, hc: 2, sickBay: 0, hospital: 0, duty: 2, leave: 0, otherExcused: 0, dietsTotal: 8, diets: { "NO PORK": 4, "NO FISH": 2, "NO SEAFOOD": 1, "NO BEEF": 0, "NO EGG": 1, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
+  { date: "2026-07-26", meal: "LUNCH", company: "ALFA", battalion: "1ST BATTALION", totalStrength: 105, present: 99, excused: 6, hc: 2, sickBay: 2, hospital: 1, duty: 1, leave: 0, otherExcused: 0, dietsTotal: 8, diets: { "NO PORK": 4, "NO FISH": 2, "NO SEAFOOD": 1, "NO BEEF": 1, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
+  { date: "2026-07-26", meal: "LUNCH", company: "BRAVO", battalion: "1ST BATTALION", totalStrength: 97, present: 93, excused: 4, hc: 1, sickBay: 1, hospital: 0, duty: 1, leave: 1, otherExcused: 0, dietsTotal: 6, diets: { "NO PORK": 3, "NO FISH": 1, "NO SEAFOOD": 2, "NO BEEF": 0, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
   { date: "2026-07-26", meal: "LUNCH", company: "CHARLIE", battalion: "2ND BATTALION", totalStrength: 98, present: 95, excused: 3, hc: 1, sickBay: 1, hospital: 0, duty: 0, leave: 1, otherExcused: 0, dietsTotal: 5, diets: { "NO PORK": 2, "NO FISH": 2, "NO SEAFOOD": 1, "NO BEEF": 0, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
   { date: "2026-07-26", meal: "LUNCH", company: "DELTA", battalion: "2ND BATTALION", totalStrength: 102, present: 97, excused: 5, hc: 2, sickBay: 1, hospital: 1, duty: 0, leave: 1, otherExcused: 0, dietsTotal: 9, diets: { "NO PORK": 5, "NO FISH": 1, "NO SEAFOOD": 2, "NO BEEF": 1, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
   { date: "2026-07-26", meal: "LUNCH", company: "ECHO", battalion: "3RD BATTALION", totalStrength: 104, present: 100, excused: 4, hc: 1, sickBay: 1, hospital: 1, duty: 1, leave: 0, otherExcused: 0, dietsTotal: 7, diets: { "NO PORK": 3, "NO FISH": 2, "NO SEAFOOD": 1, "NO BEEF": 1, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
@@ -66,6 +66,9 @@ const MOCK_DISSEMINATIONS: DisseminationRecord[] = [
 ];
 
 export default function DisseminationsPage() {
+  const { user } = useAuth();
+  const isAuthorized = user && (user.role === "RMESSO" || user.role === "MESS_OFFICER");
+
   const [records, setRecords] = useState<DisseminationRecord[]>(MOCK_DISSEMINATIONS);
   const [cadets, setCadets] = useState<Cadet[]>([]);
   const [dietColumns, setDietColumns] = useState<string[]>([
@@ -1076,7 +1079,7 @@ export default function DisseminationsPage() {
               </p>
             </div>
             <div className="header-actions" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              {process.env.NEXT_PUBLIC_APPS_SCRIPT_URL && (
+              {isAuthorized && process.env.NEXT_PUBLIC_APPS_SCRIPT_URL && (
                 <>
                   <button 
                     className="btn" 
@@ -1211,28 +1214,30 @@ export default function DisseminationsPage() {
               <p style={{ color: "var(--secondary-light)", maxWidth: "500px", margin: "0 auto 1.5rem" }}>
                 There is no recorded dissemination snapshot in Google Sheets for <strong>{selectedDate}</strong> ({selectedMeal}).
               </p>
-              <div style={{ display: "flex", gap: "12px", justifyContent: "center" }} className="no-print">
-                {process.env.NEXT_PUBLIC_APPS_SCRIPT_URL ? (
-                  <button className="btn" onClick={handleOpenPostingForm}>
-                    Post Custom Report
+              {isAuthorized && (
+                <div style={{ display: "flex", gap: "12px", justifyContent: "center" }} className="no-print">
+                  {process.env.NEXT_PUBLIC_APPS_SCRIPT_URL ? (
+                    <button className="btn" onClick={handleOpenPostingForm}>
+                      Post Custom Report
+                    </button>
+                  ) : (
+                    <a 
+                      href="https://docs.google.com/spreadsheets/d/14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ/edit#gid=1204067800" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn"
+                    >
+                      Open Google Sheet to Record
+                    </a>
+                  )}
+                  <button className="btn btn-outline" onClick={() => {
+                    const baseMock = MOCK_DISSEMINATIONS.map(m => ({ ...m, date: selectedDate, meal: selectedMeal }));
+                    setRecords([...records, ...baseMock]);
+                  }}>
+                    Generate Demo Mockup
                   </button>
-                ) : (
-                  <a 
-                    href="https://docs.google.com/spreadsheets/d/14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ/edit#gid=1204067800" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="btn"
-                  >
-                    Open Google Sheet to Record
-                  </a>
-                )}
-                <button className="btn btn-outline" onClick={() => {
-                  const baseMock = MOCK_DISSEMINATIONS.map(m => ({ ...m, date: selectedDate, meal: selectedMeal }));
-                  setRecords([...records, ...baseMock]);
-                }}>
-                  Generate Demo Mockup
-                </button>
-              </div>
+                </div>
+              )}
             </div>
           ) : (
             <>

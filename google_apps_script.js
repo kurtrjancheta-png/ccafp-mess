@@ -97,6 +97,13 @@ function doPost(e) {
       
       saveCustomDissemination(dateStr, mealStr.toUpperCase(), rows);
       response = { success: true, message: "Successfully posted and saved dissemination for " + dateStr + " (" + mealStr + ") to spreadsheet." };
+    } else if (action === "saveCamoTasks") {
+      var tasks = postData.tasks;
+      if (!tasks) {
+        throw new Error("Missing tasks parameters in payload.");
+      }
+      saveCamoTasksToSheet(tasks);
+      response = { success: true, message: "Successfully updated CAMO checklist tasks on spreadsheet." };
     } else {
       throw new Error("Unknown POST action: " + action);
     }
@@ -214,6 +221,60 @@ function saveCustomDissemination(dateStr, mealStr, rows) {
   }
   
   formatDisseminationsSheet(disSheet);
+}
+
+/**
+ * Saves/updates CAMO tasks in the CHECKLIST sheet (GID 65446490) based on task description matching.
+ */
+function saveCamoTasksToSheet(updatedTasks) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getSheetByGid(ss, "65446490");
+  if (!sheet) {
+    throw new Error("CAMO checklist sheet (GID 65446490) was not found in the spreadsheet.");
+  }
+  
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) {
+    throw new Error("Checklist sheet does not contain enough rows (header + tasks).");
+  }
+  
+  var headers = values[0].map(function(h) { return h.toString().toUpperCase().trim(); });
+  var taskIdx = headers.indexOf("TASK");
+  var statusIdx = headers.indexOf("STATUS");
+  var timeIdx = headers.indexOf("TIME");
+  var remarksIdx = headers.indexOf("REMARKS");
+  
+  if (taskIdx === -1) {
+    throw new Error("Checklist sheet must contain a 'TASK' column.");
+  }
+  
+  // Create a map of task name (lowercase trimmed) to row index (1-indexed)
+  var taskRowMap = {};
+  for (var i = 1; i < values.length; i++) {
+    var taskName = values[i][taskIdx].toString().trim().toLowerCase();
+    if (taskName) {
+      taskRowMap[taskName] = i + 1;
+    }
+  }
+  
+  // Update each task matching by name
+  updatedTasks.forEach(function(ut) {
+    var cleanTaskName = ut.task.trim().toLowerCase();
+    var rowNum = taskRowMap[cleanTaskName];
+    if (rowNum) {
+      if (statusIdx !== -1) {
+        sheet.getRange(rowNum, statusIdx + 1).setValue(ut.status);
+      }
+      if (timeIdx !== -1) {
+        sheet.getRange(rowNum, timeIdx + 1).setValue(ut.time);
+      }
+      if (remarksIdx !== -1) {
+        sheet.getRange(rowNum, remarksIdx + 1).setValue(ut.remarks);
+      }
+    }
+  });
+  
+  return true;
 }
 
 /**
