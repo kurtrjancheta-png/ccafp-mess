@@ -396,7 +396,7 @@ export default function DashboardPage() {
               totalRows: [],
               numCols: 0
             };
-          } else if (currentSection) {
+          } else {
             currentSection.headerRows.push(row);
           }
           continue;
@@ -421,7 +421,6 @@ export default function DashboardPage() {
           currentSection.totalRows.push(row);
         } else {
           // Data row!
-          // If the first cell contains a company name (GOLF style), clear it
           const cleanRow = [...row];
           if (isCompany) {
             cleanRow[0] = "";
@@ -450,15 +449,6 @@ export default function DashboardPage() {
         }
       }
 
-      // Ensure first cell of header rows contains the company name
-      for (const section of sections) {
-        for (let h = 0; h < section.headerRows.length; h++) {
-          if (!section.headerRows[h][0] || section.headerRows[h][0].trim() === "") {
-            section.headerRows[h][0] = section.company;
-          }
-        }
-      }
-
       // Calculate active column count per section
       for (const section of sections) {
         let mc = 0;
@@ -474,87 +464,175 @@ export default function DashboardPage() {
         section.numCols = mc;
       }
 
-      // Build HTML for each company section
-      const officialHeader =
-        '<div class="print-header">' +
-        '<div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>' +
-        '<div class="header-title-2">Mess Council</div>' +
-        '<div class="header-title-3">Fort General Gregorio H. del Pilar</div>' +
-        '<div class="header-title-4">Baguio City</div>' +
-        '</div>' +
-        '<div class="print-datetime">' + formattedDateTime + '</div>';
+      // Separate companies from overall summary
+      const companySections = sections.filter(s => s.company !== "OVERALL TOTAL" && COMPANY_NAMES.has(s.company));
+      const overallSection = sections.find(s => s.company === "OVERALL TOTAL" || s.company.includes("OVERALL"));
 
-      let tablesHtml = "";
-
-      for (const section of sections) {
-        const nc = section.numCols;
-
-        tablesHtml += '<div class="company-section">';
-        tablesHtml += officialHeader;
-        tablesHtml += '<table class="diet-table">';
-
-        // Header rows
-        for (let h = 0; h < section.headerRows.length; h++) {
-          const hdrClass = h === 0 ? "header-row-1" : "header-row-2";
-          tablesHtml += '<tr class="' + hdrClass + '">';
-          for (let j = 0; j < nc; j++) {
-            tablesHtml += "<th>" + (section.headerRows[h][j] || "") + "</th>";
-          }
-          tablesHtml += "</tr>";
-        }
-
-        // Data rows
-        for (const dRow of section.dataRows) {
-          tablesHtml += "<tr>";
-          for (let j = 0; j < nc; j++) {
-            const cell = dRow[j] || "";
-            if (cell && isFemaleCell(cell)) {
-              tablesHtml += '<td class="female-cadet">' + cell + "</td>";
-            } else {
-              tablesHtml += "<td>" + cell + "</td>";
+      // Format Overall Summary HTML
+      let overallHtml = "";
+      if (overallSection && overallSection.totalRows.length > 0) {
+        const firstCompanyHeaders = companySections[0]?.headerRows[0] || [];
+        overallHtml += '<div class="overall-summary-card">';
+        overallHtml += '<div class="overall-title">OVERALL SUMMARY</div>';
+        
+        overallSection.totalRows.forEach(tRow => {
+          const label = tRow[0] || "OVERALL TOTAL";
+          const totalsList: string[] = [];
+          for (let j = 1; j < tRow.length; j++) {
+            const val = tRow[j] || "";
+            const dietName = firstCompanyHeaders[j] || "";
+            if (val && val !== "0" && dietName && dietName.startsWith("NO ")) {
+              totalsList.push("<strong>" + dietName + "</strong>: " + val);
             }
           }
-          tablesHtml += "</tr>";
-        }
-
-        // Total rows
-        for (const tRow of section.totalRows) {
-          tablesHtml += '<tr class="total-row">';
-          for (let j = 0; j < nc; j++) {
-            const cell = tRow[j] || "";
-            const cls = j === 0 || (j === 1 && !tRow[0]) ? "total-label" : "total-val";
-            tablesHtml += '<td class="' + cls + '">' + cell + "</td>";
-          }
-          tablesHtml += "</tr>";
-        }
-
-        tablesHtml += "</table></div>";
+          overallHtml += '<div class="overall-row">' +
+            '<div class="overall-row-label">' + label + "</div>" +
+            '<div class="overall-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
+            "</div>";
+        });
+        overallHtml += "</div>";
       }
+
+      // Group companies into pairs (2 per page)
+      interface DietColumnData {
+        name: string;
+        total: string;
+        cadets: string[];
+      }
+
+      const pairs: Section[][] = [];
+      for (let i = 0; i < companySections.length; i += 2) {
+        pairs.push(companySections.slice(i, i + 2));
+      }
+
+      let pagesHtml = "";
+
+      pairs.forEach((pair, pairIdx) => {
+        let pairCompaniesHtml = "";
+
+        pair.forEach(section => {
+          const dietNamesRow = section.headerRows[0] || [];
+          const totalRow = section.totalRows[0] || [];
+          const activeDiets: DietColumnData[] = [];
+
+          // Collect columns with data
+          for (let j = 1; j < section.numCols; j++) {
+            const dietName = dietNamesRow[j] || "";
+            if (!dietName || !dietName.toUpperCase().startsWith("NO ")) continue;
+
+            const cadetsList: string[] = [];
+            for (const dRow of section.dataRows) {
+              const cadetVal = dRow[j] || "";
+              if (cadetVal && cadetVal.trim() !== "") {
+                cadetsList.push(cadetVal.trim());
+              }
+            }
+
+            const dietTotal = totalRow[j] || String(cadetsList.length);
+
+            // Filter out empty columns
+            if (cadetsList.length > 0 || (parseInt(dietTotal) > 0 && dietTotal !== "0")) {
+              activeDiets.push({
+                name: dietName,
+                total: dietTotal,
+                cadets: cadetsList
+              });
+            }
+          }
+
+          // Build columns layout
+          let dietsHtml = "";
+          activeDiets.forEach(diet => {
+            let cadetItemsHtml = "";
+            diet.cadets.forEach(cadet => {
+              const isFemale = isFemaleCell(cadet);
+              const className = isFemale ? 'class="female-cadet"' : "";
+              cadetItemsHtml += "<li " + className + ">" + cadet + "</li>";
+            });
+
+            dietsHtml += '<div class="diet-column">' +
+              '<div class="diet-column-header">' + diet.name + " (" + diet.total + ")</div>" +
+              '<ul class="cadet-list">' + cadetItemsHtml + "</ul>" +
+              "</div>";
+          });
+
+          // Build totals row
+          let totalsSummaryHtml = "";
+          section.totalRows.forEach(tRow => {
+            const label = tRow[0] || "TOTAL";
+            const totalsList: string[] = [];
+            activeDiets.forEach(diet => {
+              const origIdx = dietNamesRow.indexOf(diet.name);
+              if (origIdx !== -1) {
+                const val = tRow[origIdx] || "0";
+                totalsList.push("<strong>" + diet.name + "</strong>: " + val);
+              }
+            });
+
+            totalsSummaryHtml += '<div class="company-total-row">' +
+              '<div class="total-row-label">' + label + "</div>" +
+              '<div class="total-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
+              "</div>";
+          });
+
+          pairCompaniesHtml += '<div class="company-card">' +
+            '<div class="company-name-banner">' + section.company + " COMPANY</div>" +
+            '<div class="diets-flex-container">' + dietsHtml + "</div>" +
+            '<div class="company-totals-section">' + totalsSummaryHtml + "</div>" +
+            "</div>";
+        });
+
+        const isLastPage = pairIdx === pairs.length - 1;
+        const pageContentHtml = pairCompaniesHtml + (isLastPage ? overallHtml : "");
+
+        pagesHtml += '<div class="page-container">' +
+          '<div class="print-header">' +
+          '<div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>' +
+          '<div class="header-title-2">Mess Council</div>' +
+          '<div class="header-title-3">Fort General Gregorio H. del Pilar</div>' +
+          '<div class="header-title-4">Baguio City</div>' +
+          "</div>" +
+          '<div class="print-datetime">' + formattedDateTime + "</div>" +
+          '<div class="companies-wrapper">' + pageContentHtml + "</div>" +
+          "</div>";
+      });
 
       // Build the full print HTML document
       const printContent = "<!DOCTYPE html><html><head>" +
         "<title>Special Diet Report - CCAFP Mess Council</title>" +
         "<style>" +
-        "@media print { @page { size: landscape; margin: 8mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }" +
-        "body { font-family: Arial, sans-serif; margin: 0; padding: 10px; color: #000; background: #fff; }" +
-        ".print-header { text-align: center; margin-bottom: 10px; line-height: 1.3; }" +
-        ".header-title-1 { font-size: 12pt; font-weight: bold; text-transform: uppercase; }" +
-        ".header-title-2 { font-size: 11pt; font-weight: bold; text-transform: uppercase; margin-top: 2px; }" +
-        ".header-title-3 { font-size: 9pt; margin-top: 2px; }" +
-        ".header-title-4 { font-size: 9pt; margin-top: 2px; }" +
-        ".print-datetime { text-align: center; font-size: 10pt; font-weight: bold; margin-bottom: 15px; }" +
-        ".company-section { page-break-after: always; }" +
-        ".company-section:last-child { page-break-after: avoid; }" +
-        ".diet-table { width: 100%; border-collapse: collapse; font-size: 8pt; table-layout: auto; }" +
-        ".diet-table th, .diet-table td { border: 1px solid #999; padding: 3px 4px; text-align: left; vertical-align: top; }" +
-        ".diet-table th { font-size: 7pt; font-weight: bold; white-space: normal; word-wrap: break-word; text-align: center; }" +
-        ".diet-table td { white-space: nowrap; font-size: 7.5pt; }" +
-        ".header-row-1 th { background-color: #f2f2f2 !important; }" +
-        ".header-row-2 th { background-color: #b6d7a8 !important; }" +
-        ".female-cadet { color: #d93025; font-weight: 500; }" +
-        ".total-label, .total-val { font-weight: bold; background-color: #f9f9f9 !important; border-top: 2px solid #000 !important; border-bottom: 3px double #000 !important; }" +
+        "@media print { @page { size: landscape; margin: 6mm 10mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }" +
+        "body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }" +
+        ".page-container { page-break-after: always; padding: 10px; box-sizing: border-box; height: 98vh; display: flex; flex-direction: column; }" +
+        ".page-container:last-child { page-break-after: avoid; }" +
+        ".print-header { text-align: center; line-height: 1.2; margin-bottom: 4px; }" +
+        ".header-title-1 { font-size: 11pt; font-weight: bold; text-transform: uppercase; }" +
+        ".header-title-2 { font-size: 10pt; font-weight: bold; text-transform: uppercase; margin-top: 1px; }" +
+        ".header-title-3 { font-size: 8.5pt; margin-top: 1px; }" +
+        ".header-title-4 { font-size: 8.5pt; margin-top: 1px; }" +
+        ".print-datetime { text-align: center; font-size: 9pt; font-weight: bold; margin-bottom: 8px; }" +
+        ".companies-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; min-height: 0; }" +
+        ".company-card { border: 1.5px solid #666; border-radius: 6px; padding: 6px 10px; background-color: #fff; display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; }" +
+        ".company-name-banner { font-size: 9pt; font-weight: bold; background-color: #f2f2f2; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; border-left: 4px solid #b6d7a8; }" +
+        ".diets-flex-container { display: flex; flex-wrap: wrap; gap: 6px; flex-grow: 1; align-content: flex-start; min-height: 0; overflow: hidden; }" +
+        ".diet-column { flex: 1 1 110px; border: 1px solid #ccc; border-radius: 4px; background-color: #fafafa; padding: 4px; display: flex; flex-direction: column; gap: 3px; min-height: 0; }" +
+        ".diet-column-header { font-size: 7pt; font-weight: bold; background-color: #b6d7a8 !important; color: #000; padding: 2px 4px; border-radius: 3px; text-align: center; text-transform: uppercase; }" +
+        ".cadet-list { list-style: none; padding: 0; margin: 0; font-size: 7pt; overflow-y: auto; }" +
+        ".cadet-list li { padding: 1.5px 2px; border-bottom: 1px solid #eee; }" +
+        ".cadet-list li:last-child { border-bottom: none; }" +
+        ".female-cadet { color: #d93025 !important; font-weight: bold; }" +
+        ".company-totals-section { border-top: 1px dashed #999; padding-top: 3px; display: flex; flex-direction: column; gap: 2px; }" +
+        ".company-total-row { display: flex; font-size: 6.5pt; background-color: #f9f9f9 !important; padding: 1.5px 4px; border-radius: 3px; border: 1px solid #ddd; }" +
+        ".total-row-label { font-weight: bold; width: 120px; min-width: 120px; color: #000; text-transform: uppercase; }" +
+        ".total-row-values { flex-grow: 1; color: #333; }" +
+        ".overall-summary-card { border: 2px solid #333; border-radius: 6px; padding: 6px 10px; background-color: #fff; margin-top: 4px; }" +
+        ".overall-title { font-size: 8.5pt; font-weight: bold; background-color: #333 !important; color: #fff; padding: 3px 6px; border-radius: 4px; text-align: center; margin-bottom: 4px; }" +
+        ".overall-row { display: flex; font-size: 7pt; background-color: #f5f5f5 !important; padding: 2.5px 6px; border-radius: 3px; border: 1px solid #ddd; margin-bottom: 2px; }" +
+        ".overall-row:last-child { margin-bottom: 0; }" +
+        ".overall-row-label { font-weight: bold; width: 130px; min-width: 130px; color: #000; text-transform: uppercase; }" +
+        ".overall-row-values { flex-grow: 1; color: #111; }" +
         "</style></head><body>" +
-        tablesHtml +
+        pagesHtml +
         "<script>window.onload = function() { window.print(); }<\/script>" +
         "</body></html>";
 
