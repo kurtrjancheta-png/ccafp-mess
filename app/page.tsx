@@ -487,14 +487,6 @@ export default function DashboardPage() {
         });
 
         pagesHtml += '<div class="page-container">' +
-          '<div class="print-header">' +
-          '<div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>' +
-          '<div class="header-title-2">Mess Council</div>' +
-          '<div class="header-title-3">Fort General Gregorio H. del Pilar</div>' +
-          '<div class="header-title-4">Baguio City</div>' +
-          "</div>" +
-          '<div class="print-datetime">' + formattedDateTime + "</div>" +
-          
           '<div class="document-title-strip">' +
           '<div class="doc-title">SPECIAL DIET SUMMARY</div>' +
           '<div class="batt-title">' + battalionName + "</div>" +
@@ -560,7 +552,7 @@ export default function DashboardPage() {
         "</div>" +
         "</div>";
 
-      pagesHtml += summaryPageHtml;
+      pagesHtml = summaryPageHtml + pagesHtml;
 
       // Build the full print HTML document
       const printContent = "<!DOCTYPE html><html><head>" +
