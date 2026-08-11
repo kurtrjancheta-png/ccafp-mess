@@ -392,7 +392,7 @@ export default function DashboardPage() {
       `;
     }).join('');
 
-    const printContent = \`
+    const printContent = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -536,9 +536,9 @@ export default function DashboardPage() {
           <div class="header-title-4">Baguio City</div>
         </div>
 
-        <div class="print-datetime">\${formattedDateTime}</div>
+        <div class="print-datetime">${formattedDateTime}</div>
 
-        \${tablesHtml}
+        ${tablesHtml}
 
         <script>
           window.onload = function() {
@@ -547,7 +547,7 @@ export default function DashboardPage() {
         </script>
       </body>
       </html>
-    \`;
+    `;
 
     const printWindow = window.open("", "_blank");
     if (printWindow) {
