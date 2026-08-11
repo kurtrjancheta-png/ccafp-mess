@@ -31,20 +31,30 @@ export async function POST(request: Request) {
     } catch (parseError) {
       console.error("Failed to parse Apps Script response as JSON. Response was:", textResponse);
       
-      // Parse HTML title or generic errors to provide helpful debugging feedback
-      let cleanError = "Google Sheets returned an invalid response. Please ensure you redeployed the Apps Script as a 'New Deployment' and authorized all spreadsheet permissions.";
+      // Strip HTML tags and scripts to extract the raw text error message
+      const cleanText = textResponse
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      let cleanError = "Google Sheets returned an invalid response. Please ensure you redeployed the Apps Script and authorized all spreadsheet permissions.";
       
-      const titleMatch = textResponse.match(/<title>([\s\S]*?)<\/title>/i);
-      if (titleMatch && titleMatch[1]) {
-        const titleText = titleMatch[1].trim();
-        // Ignore generic Google login titles
-        if (!titleText.includes("Google Accounts") && !titleText.includes("Sign in")) {
-          cleanError = `Apps Script Error: ${titleText}`;
+      if (cleanText.includes("Error details:")) {
+        const match = cleanText.match(/Error details:\s*([\s\S]*?)(?:$|\s+Google|\s+Help|\s+Learn)/i);
+        if (match && match[1]) {
+          cleanError = `Apps Script Error: ${match[1].trim()}`;
         }
-      }
-      
-      if (textResponse.includes("Unknown POST action")) {
-        cleanError = "Apps Script Error: Unknown POST action. Please redeploy your script using a new version/deployment to apply the weekly menu code.";
+      } else if (cleanText.includes("Exception:")) {
+        const match = cleanText.match(/(Exception:\s*[\s\S]*?)(?:$|\s+Google|\s+Help|\s+Learn)/i);
+        if (match && match[1]) {
+          cleanError = `Apps Script Error: ${match[1].trim()}`;
+        }
+      } else if (cleanText.length > 0) {
+        // Fallback to displaying a short snippet of the cleaned text
+        const snippet = cleanText.substring(0, 180);
+        cleanError = `Apps Script Response: ${snippet}${cleanText.length > 180 ? "..." : ""}`;
       }
       
       return NextResponse.json(
