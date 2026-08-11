@@ -104,6 +104,15 @@ function doPost(e) {
       }
       saveCamoTasksToSheet(tasks);
       response = { success: true, message: "Successfully updated CAMO checklist tasks on spreadsheet." };
+    } else if (action === "saveWeeklyMenuAndViands") {
+      var rows = postData.rows;
+      var viands = postData.viands;
+      if (!rows || !viands) {
+        throw new Error("Missing rows or viands parameter in payload.");
+      }
+      saveWeeklyMenu(rows);
+      saveViands(viands);
+      response = { success: true, message: "Successfully updated Weekly Menu and progressive Viands Database." };
     } else {
       throw new Error("Unknown POST action: " + action);
     }
@@ -731,4 +740,206 @@ function getHtmlDialogContent() {
     '  </script>\n' +
     '</body>\n' +
     '</html>';
+}
+
+/**
+ * Saves/updates the weekly menu sheet (GID 143586769) with the new 2D array of rows.
+ */
+function saveWeeklyMenu(rows) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var menuSheet = getSheetByGid(ss, "143586769") || ss.getSheetByName("WEEKLY MENU");
+  if (!menuSheet) {
+    menuSheet = ss.insertSheet("WEEKLY MENU");
+  }
+  
+  // Clear the existing content to ensure no remnants
+  menuSheet.clearContent();
+  
+  // Write the new rows starting from A1
+  var range = menuSheet.getRange(1, 1, rows.length, rows[0].length);
+  range.setValues(rows);
+  
+  // Apply formatting to weekly menu sheet
+  formatWeeklyMenuSheet(menuSheet);
+  
+  return true;
+}
+
+/**
+ * Appends new unique viands to the Viands Database sheet (GID 166151731).
+ */
+function saveViands(viandsList) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var viandsSheet = getSheetByGid(ss, "166151731") || ss.getSheetByName("VIANDS");
+  if (!viandsSheet) {
+    viandsSheet = ss.insertSheet("VIANDS");
+  }
+  
+  var values = viandsSheet.getDataRange().getValues();
+  var headers = [];
+  
+  if (values.length === 0 || values[0].length === 0 || !values[0][0]) {
+    // If the sheet is empty, initialize default headers
+    headers = [
+      "VIAND", "NO FISH", "NO PORK", "NO SEAFOOD", "NO EGG", "NO CHICKEN", "NO BLOOD", 
+      "NO PROCESSED FOOD", "NO BEANS", "NO NUTS", "NO TOFU", "NO COFFEE", 
+      "NO CHOCOLATE", "NO TOMATOES", "NO SPICY", "NO BEEF", "NO CITRUS", "NO EGGPLANT", 
+      "NO JUICE", "NO COCUMBER", "NO SOUR"
+    ];
+    viandsSheet.appendRow(headers);
+    values = [headers];
+  } else {
+    headers = values[0];
+  }
+  
+  var cleanHeaders = headers.map(function(h) { return h.toString().toUpperCase().trim(); });
+  var viandColIdx = cleanHeaders.indexOf("VIAND");
+  if (viandColIdx === -1) {
+    throw new Error("Required column 'VIAND' was not found in the Viands sheet.");
+  }
+  
+  // Gather existing viand names (case-insensitive, trimmed)
+  var existingViands = {};
+  for (var i = 1; i < values.length; i++) {
+    var name = values[i][viandColIdx] ? values[i][viandColIdx].toString().toUpperCase().trim() : "";
+    if (name) {
+      existingViands[name] = true;
+    }
+  }
+  
+  // Append new viands
+  viandsList.forEach(function(item) {
+    if (!item.viand) return;
+    var nameUpper = item.viand.toUpperCase().trim();
+    // Only add if it does not already exist
+    if (!existingViands[nameUpper]) {
+      var rowData = new Array(headers.length).fill("");
+      rowData[viandColIdx] = item.viand.trim(); // Keep original casing
+      
+      cleanHeaders.forEach(function(header, colIdx) {
+        if (colIdx === viandColIdx) return;
+        // Check if item's diets contains this header
+        if (item.diets && (item.diets[header] === 1 || item.diets[header] === "1" || item.diets[header] === true)) {
+          rowData[colIdx] = 1;
+        } else {
+          rowData[colIdx] = "";
+        }
+      });
+      
+      viandsSheet.appendRow(rowData);
+      existingViands[nameUpper] = true; // prevent duplicate in same batch
+    }
+  });
+  
+  // Format the viands sheet
+  formatViandsSheet(viandsSheet);
+  
+  return true;
+}
+
+/**
+ * Beautiful styling rules applied automatically to the Weekly Menu sheet.
+ */
+function formatWeeklyMenuSheet(sheet) {
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 1) return;
+  
+  sheet.setFrozenRows(0);
+  
+  // Days of the week header (pinkish bg, bold white text)
+  var headerRange = sheet.getRange(1, 1, 1, lastCol);
+  headerRange.setBackground("#D84B61")
+             .setFontColor("#FFFFFF")
+             .setFontWeight("bold")
+             .setHorizontalAlignment("center")
+             .setVerticalAlignment("middle");
+             
+  sheet.setRowHeight(1, 28);
+  
+  // Column A labels (bold, right-aligned or left-aligned)
+  var labelRange = sheet.getRange(2, 1, lastRow - 1, 1);
+  labelRange.setFontWeight("bold")
+            .setHorizontalAlignment("left")
+            .setBackground("#F3F4F6");
+            
+  // Apply light borders
+  var dataRange = sheet.getRange(1, 1, lastRow, lastCol);
+  dataRange.setFontFamily("Arial")
+            .setFontSize(10)
+            .setVerticalAlignment("middle")
+            .setBorder(true, true, true, true, true, true, "#E5E7EB", SpreadsheetApp.BorderStyle.SOLID);
+            
+  // Highlight Section Headers (MORNING MESS, NOON MESS, EVENING MESS, PM SNACK)
+  var sectionRows = [2, 10, 18, 26];
+  sectionRows.forEach(function(row) {
+    if (row <= lastRow) {
+      var rowRange = sheet.getRange(row, 1, 1, lastCol);
+      rowRange.setBackground("#FFE4E7")
+              .setFontWeight("bold")
+              .setFontColor("#C23E53");
+    }
+  });
+  
+  // Center day columns B-H
+  if (lastCol > 1) {
+    sheet.getRange(2, 2, lastRow - 1, lastCol - 1).setHorizontalAlignment("center");
+  }
+  
+  // Auto-resize columns
+  for (var col = 1; col <= lastCol; col++) {
+    sheet.autoResizeColumn(col);
+    var currentWidth = sheet.getColumnWidth(col);
+    if (col === 1) {
+      sheet.setColumnWidth(col, 130);
+    } else {
+      sheet.setColumnWidth(col, Math.max(currentWidth + 12, 120));
+    }
+  }
+}
+
+/**
+ * Beautiful styling rules applied automatically to the Viands sheet.
+ */
+function formatViandsSheet(sheet) {
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 1) return;
+  
+  sheet.setFrozenRows(0);
+  sheet.setFrozenRows(1);
+  
+  // Header row (Dark gray bg, bold white text)
+  var headerRange = sheet.getRange(1, 1, 1, lastCol);
+  headerRange.setBackground("#374151")
+             .setFontColor("#FFFFFF")
+             .setFontWeight("bold")
+             .setHorizontalAlignment("center")
+             .setVerticalAlignment("middle");
+             
+  sheet.setRowHeight(1, 28);
+  
+  // Format data rows
+  var dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
+  dataRange.setFontFamily("Arial")
+            .setFontSize(10)
+            .setVerticalAlignment("middle")
+            .setBorder(true, true, true, true, true, true, "#E5E7EB", SpreadsheetApp.BorderStyle.SOLID);
+            
+  // Alignments: Viand name left-aligned, other cells centered
+  sheet.getRange(2, 1, lastRow - 1, 1).setHorizontalAlignment("left").setFontWeight("bold");
+  if (lastCol > 1) {
+    sheet.getRange(2, 2, lastRow - 1, lastCol - 1).setHorizontalAlignment("center");
+  }
+  
+  // Auto-resize columns
+  for (var col = 1; col <= lastCol; col++) {
+    sheet.autoResizeColumn(col);
+    var currentWidth = sheet.getColumnWidth(col);
+    if (col === 1) {
+      sheet.setColumnWidth(col, Math.max(currentWidth + 15, 150));
+    } else {
+      sheet.setColumnWidth(col, Math.max(currentWidth + 10, 80));
+    }
+  }
 }
