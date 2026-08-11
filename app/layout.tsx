@@ -6,6 +6,13 @@ import Sidebar from "./components/Sidebar";
 export const metadata: Metadata = {
   title: "CCAFP Mess - Disposition & Diet Portal",
   description: "CCAFP Mess Council Portal for managing cadet dispositions, announcements, dietary restrictions, and concerns.",
+  manifest: "/manifest.json",
+  themeColor: "#1e293b",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "CCAFP Mess",
+  },
 };
 
 export default function RootLayout({

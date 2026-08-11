@@ -17,6 +17,8 @@ export default function Sidebar() {
 
   const [isDark, setIsDark] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
   
   // Login Modal State
   const [showLogin, setShowLogin] = useState(false);
@@ -94,7 +96,38 @@ export default function Sidebar() {
       }, 10000);
     }
 
-    return () => clearTimer();
+    // Service Worker registration
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js")
+        .then((reg) => console.log("Service Worker registered successfully:", reg.scope))
+        .catch((err) => console.error("Service Worker registration failed:", err));
+    }
+
+    // PWA installation event listeners
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setShowInstallBtn(false);
+      console.log("PWA was installed");
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    if (window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone) {
+      setShowInstallBtn(false);
+    }
+
+    return () => {
+      clearTimer();
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
   }, []);
 
   // Update dynamic CSS variable
@@ -103,6 +136,15 @@ export default function Sidebar() {
     const width = isCollapsed ? "80px" : "280px";
     document.documentElement.style.setProperty("--sidebar-width", width);
   }, [isCollapsed, isMounted]);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User choice outcome: ${outcome}`);
+    setDeferredPrompt(null);
+    setShowInstallBtn(false);
+  };
 
   // Lock body scroll and prevent collapse when login modal is open
   useEffect(() => {
@@ -349,6 +391,31 @@ export default function Sidebar() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             <span>Log In as Admin</span>
+          </button>
+        )}
+
+        {/* PWA Install Button */}
+        {showInstallBtn && (
+          <button
+            onClick={handleInstallClick}
+            className="btn btn-primary no-print"
+            style={{
+              width: "100%",
+              marginBottom: "1rem",
+              padding: "8px 12px",
+              fontSize: "0.75rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)",
+              color: "#ffffff"
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: "14px", height: "14px" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>Install App</span>
           </button>
         )}
 
