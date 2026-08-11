@@ -576,7 +576,8 @@ export default function DashboardPage() {
         ".header-title-3 { font-size: 8.5pt; margin-top: 1px; }" +
         ".header-title-4 { font-size: 8.5pt; margin-top: 1px; }" +
         ".print-datetime { text-align: center; font-size: 9pt; font-weight: bold; margin-bottom: 8px; }" +
-        ".company-card { border: 1.5px solid #666; border-radius: 6px; padding: 8px 12px; background-color: #fff; display: flex; flex-direction: column; gap: 6px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".companies-wrapper { display: flex; gap: 12px; width: 100%; align-items: stretch; }" +
+        ".company-card { flex: 1; border: 1.5px solid #666; border-radius: 6px; padding: 8px 12px; background-color: #fff; display: flex; flex-direction: column; gap: 6px; page-break-inside: avoid; break-inside: avoid; }" +
         ".company-name-banner { font-size: 9.5pt; font-weight: bold; background-color: #f2f2f2; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; border-left: 4px solid #b6d7a8; }" +
         ".diets-flex-container { display: flex; flex-wrap: wrap; gap: 8px; }" +
         ".diet-column { flex: 1 1 110px; max-width: 180px; border: 1px solid #ccc; border-radius: 4px; background-color: #fafafa; padding: 4px; display: flex; flex-direction: column; gap: 3px; page-break-inside: avoid; break-inside: avoid; }" +
