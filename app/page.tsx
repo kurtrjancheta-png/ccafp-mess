@@ -359,18 +359,40 @@ export default function DashboardPage() {
         dataRows: string[][];
         totalRows: string[][];
         numCols: number;
-      }
-
       const sections: Section[] = [];
       let currentSection: Section | null = null;
+
+      let firstBattRow: string[] | null = null;
+      let secondBattRow: string[] | null = null;
+      let thirdBattRow: string[] | null = null;
+      let fourthBattRow: string[] | null = null;
+      let overallRow: string[] | null = null;
 
       for (let i = 0; i < nonEmptyRows.length; i++) {
         const row = nonEmptyRows[i];
         const first = row[0].toUpperCase().trim();
         
+        // Extract battalion and overall totals separately to place on summary page
+        if (first.includes("1ST BATT")) {
+          firstBattRow = row;
+          continue;
+        } else if (first.includes("2ND BATT")) {
+          secondBattRow = row;
+          continue;
+        } else if (first.includes("3RD BATT")) {
+          thirdBattRow = row;
+          continue;
+        } else if (first.includes("4TH BATT")) {
+          fourthBattRow = row;
+          continue;
+        } else if (first.includes("OVERALL")) {
+          overallRow = row;
+          continue;
+        }
+
         const isDietHdr = hasDietHeaders(row);
         const isCompany = COMPANY_NAMES.has(first);
-        const isTotal = first.includes("TOTAL") || first.includes("BATT") || first.includes("OVERALL");
+        const isTotal = first === "TOTAL" || (first.includes("TOTAL") && !first.includes("BATT") && !first.includes("OVERALL"));
         const isLabelOnly = isCompany && row.slice(1).every(c => c.trim() === "");
 
         // Check if this row starts/adds to header of a company section
@@ -402,10 +424,10 @@ export default function DashboardPage() {
           continue;
         }
 
-        // If we don't have a section yet (e.g. at the very end for OVERALL TOTAL), create a dummy one
+        // If we don't have a section yet, create a dummy one
         if (!currentSection) {
           currentSection = {
-            company: "OVERALL TOTAL",
+            company: "SPECIAL DIETS",
             headerRows: [],
             dataRows: [],
             totalRows: [],
@@ -415,7 +437,7 @@ export default function DashboardPage() {
 
         // Classify the row inside the active section
         if (isLabelOnly) {
-          // Skip company label rows (e.g. "FOXTROT" on its own row)
+          // Skip company label rows
           continue;
         } else if (isTotal) {
           currentSection.totalRows.push(row);
@@ -465,33 +487,7 @@ export default function DashboardPage() {
       }
 
       // Separate companies from overall summary
-      const companySections = sections.filter(s => s.company !== "OVERALL TOTAL" && COMPANY_NAMES.has(s.company));
-      const overallSection = sections.find(s => s.company === "OVERALL TOTAL" || s.company.includes("OVERALL"));
-
-      // Format Overall Summary HTML
-      let overallHtml = "";
-      if (overallSection && overallSection.totalRows.length > 0) {
-        const firstCompanyHeaders = companySections[0]?.headerRows[0] || [];
-        overallHtml += '<div class="overall-summary-card">';
-        overallHtml += '<div class="overall-title">OVERALL SUMMARY</div>';
-        
-        overallSection.totalRows.forEach(tRow => {
-          const label = tRow[0] || "OVERALL TOTAL";
-          const totalsList: string[] = [];
-          for (let j = 1; j < tRow.length; j++) {
-            const val = tRow[j] || "";
-            const dietName = firstCompanyHeaders[j] || "";
-            if (val && val !== "0" && dietName && dietName.startsWith("NO ")) {
-              totalsList.push("<strong>" + dietName + "</strong>: " + val);
-            }
-          }
-          overallHtml += '<div class="overall-row">' +
-            '<div class="overall-row-label">' + label + "</div>" +
-            '<div class="overall-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
-            "</div>";
-        });
-        overallHtml += "</div>";
-      }
+      const companySections = sections.filter(s => s.company !== "SPECIAL DIETS" && COMPANY_NAMES.has(s.company));
 
       // Group companies into pairs (2 per page)
       interface DietColumnData {
@@ -507,7 +503,7 @@ export default function DashboardPage() {
 
       let pagesHtml = "";
 
-      pairs.forEach((pair, pairIdx) => {
+      pairs.forEach((pair) => {
         let pairCompaniesHtml = "";
 
         pair.forEach(section => {
@@ -582,9 +578,6 @@ export default function DashboardPage() {
             "</div>";
         });
 
-        const isLastPage = pairIdx === pairs.length - 1;
-        const pageContentHtml = pairCompaniesHtml + (isLastPage ? overallHtml : "");
-
         pagesHtml += '<div class="page-container">' +
           '<div class="print-header">' +
           '<div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>' +
@@ -593,9 +586,51 @@ export default function DashboardPage() {
           '<div class="header-title-4">Baguio City</div>' +
           "</div>" +
           '<div class="print-datetime">' + formattedDateTime + "</div>" +
-          '<div class="companies-wrapper">' + pageContentHtml + "</div>" +
+          '<div class="companies-wrapper">' + pairCompaniesHtml + "</div>" +
           "</div>";
       });
+
+      // Build the final summary page
+      let summaryPageHtml = "";
+      const masterHeaders = companySections[0]?.headerRows[0] || [];
+
+      const formatSummaryCard = (title: string, row: string[] | null) => {
+        if (!row) return "";
+        const totalsList: string[] = [];
+        for (let j = 1; j < row.length; j++) {
+          const val = row[j] || "";
+          const dietName = masterHeaders[j] || "";
+          if (val && val !== "0" && dietName && dietName.startsWith("NO ")) {
+            totalsList.push("<strong>" + dietName + "</strong>: " + val);
+          }
+        }
+        return '<div class="summary-card">' +
+          '<div class="summary-card-title">' + title + '</div>' +
+          '<div class="summary-card-values">' + (totalsList.join(" &nbsp;|&nbsp; ") || "No special diet requirements") + '</div>' +
+          '</div>';
+      };
+
+      if (firstBattRow || secondBattRow || thirdBattRow || fourthBattRow || overallRow) {
+        summaryPageHtml += '<div class="page-container">' +
+          '<div class="print-header">' +
+          '<div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>' +
+          '<div class="header-title-2">Mess Council</div>' +
+          '<div class="header-title-3">Fort General Gregorio H. del Pilar</div>' +
+          '<div class="header-title-4">Baguio City</div>' +
+          "</div>" +
+          '<div class="print-datetime">' + formattedDateTime + "</div>" +
+          '<div class="summary-report-title">BATTALION & OVERALL SUMMARY REPORT</div>' +
+          '<div class="summary-cards-wrapper">' +
+          formatSummaryCard("1ST BATTALLION TOTAL (ALFA & BRAVO)", firstBattRow) +
+          formatSummaryCard("2ND BATTALLION TOTAL (CHARLIE & DELTA)", secondBattRow) +
+          formatSummaryCard("3RD BATTALLION TOTAL (ECHO & FOXTROT)", thirdBattRow) +
+          formatSummaryCard("4TH BATTALLION TOTAL (GOLF & HAWK)", fourthBattRow) +
+          formatSummaryCard("OVERALL TOTAL", overallRow) +
+          "</div>" +
+          "</div>";
+      }
+
+      pagesHtml += summaryPageHtml;
 
       // Build the full print HTML document
       const printContent = "<!DOCTYPE html><html><head>" +
@@ -625,17 +660,16 @@ export default function DashboardPage() {
         ".company-total-row { display: flex; font-size: 7pt; background-color: #f9f9f9 !important; padding: 2px 4px; border-radius: 3px; border: 1px solid #ddd; page-break-inside: avoid; break-inside: avoid; }" +
         ".total-row-label { font-weight: bold; width: 120px; min-width: 120px; color: #000; text-transform: uppercase; }" +
         ".total-row-values { flex-grow: 1; color: #333; }" +
-        ".overall-summary-card { border: 2px solid #333; border-radius: 6px; padding: 8px 12px; background-color: #fff; margin-top: 10px; page-break-inside: avoid; break-inside: avoid; }" +
-        ".overall-title { font-size: 9pt; font-weight: bold; background-color: #333 !important; color: #fff; padding: 3px 6px; border-radius: 4px; text-align: center; margin-bottom: 5px; }" +
-        ".overall-row { display: flex; font-size: 7.5pt; background-color: #f5f5f5 !important; padding: 3px 6px; border-radius: 3px; border: 1px solid #ddd; margin-bottom: 3px; page-break-inside: avoid; break-inside: avoid; }" +
-        ".overall-row:last-child { margin-bottom: 0; }" +
-        ".overall-row-label { font-weight: bold; width: 130px; min-width: 130px; color: #000; text-transform: uppercase; }" +
-        ".overall-row-values { flex-grow: 1; color: #111; }" +
+        ".summary-report-title { font-size: 11pt; font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 12px; color: #000; border-bottom: 2px solid #333; padding-bottom: 4px; }" +
+        ".summary-cards-wrapper { display: flex; flex-direction: column; gap: 12px; }" +
+        ".summary-card { border: 2px solid #555; border-radius: 6px; padding: 10px 14px; background-color: #fff; page-break-inside: avoid; break-inside: avoid; }" +
+        ".summary-card:last-child { border-color: #000; border-width: 2.5px; }" +
+        ".summary-card-title { font-size: 9pt; font-weight: bold; background-color: #f2f2f2; padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; border-left: 4px solid #b6d7a8; }" +
+        ".summary-card:last-child .summary-card-title { background-color: #333; color: #fff; border-left: 4px solid #d93025; }" +
+        ".summary-card-values { font-size: 8.5pt; color: #111; line-height: 1.4; }" +
         "</style></head><body>" +
         pagesHtml +
         "<script>window.onload = function() { window.print(); }<\/script>" +
-        "</body></html>";
-
       const printWindow = window.open("", "_blank");
       if (printWindow) {
         printWindow.document.write(printContent);
