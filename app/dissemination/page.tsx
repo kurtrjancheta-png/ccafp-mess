@@ -49,8 +49,14 @@ export default function DisseminationsPage() {
   const isAuthorized = user && user.role === "RMESSO";
 
   useEffect(() => {
-    fetchDisseminations();
+    fetchDisseminations(false);
     setMounted(true);
+
+    const interval = setInterval(() => {
+      fetchDisseminations(true);
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   // Lock body scroll when modal is open
@@ -127,8 +133,8 @@ export default function DisseminationsPage() {
     return lines;
   };
 
-  const fetchDisseminations = async () => {
-    setLoading(true);
+  const fetchDisseminations = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     setError(null);
     const sheetId = process.env.NEXT_PUBLIC_SPREADSHEET_ID || "14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ";
     const gid = "1204067800"; // Dissemination sheet GID
@@ -386,9 +392,6 @@ export default function DisseminationsPage() {
               Post Dissemination
             </button>
           )}
-          <button className="btn btn-outline" onClick={fetchDisseminations} disabled={loading}>
-            {loading ? "Syncing..." : "Sync Board"}
-          </button>
         </div>
       </header>
 
