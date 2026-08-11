@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "./context/AuthContext";
 
 // interface for a Cadet
 interface Cadet {
@@ -37,6 +38,7 @@ const MOCK_CADETS: Cadet[] = [
 ];
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [cadets, setCadets] = useState<Cadet[]>(MOCK_CADETS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -294,6 +296,268 @@ export default function DashboardPage() {
     preferences: dietColumns.filter(d => preferenceDiets.includes(d.toUpperCase()) || !allergenDiets.includes(d.toUpperCase())),
   };
 
+  const handlePrintSpecialDietReport = () => {
+    const getFormattedDateTime = () => {
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const monthNames = [
+        "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+        "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+      ];
+      const month = monthNames[now.getMonth()];
+      const year = now.getFullYear();
+      return `${day} ${hours}${minutes}H ${month} ${year}`;
+    };
+
+    const formattedDateTime = getFormattedDateTime();
+
+    const standardCompanies = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT", "GOLF", "HAWK"];
+    const uniqueCompanies = Array.from(new Set(cadets.map(c => c.company.toUpperCase())))
+      .filter(Boolean)
+      .sort((a, b) => {
+        const idxA = standardCompanies.indexOf(a);
+        const idxB = standardCompanies.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+
+    const FEMALE_CADETS = new Set([
+      "DE MESA", "MALANOT", "FELIPE", "LORICO", "PRACULLOS", "ATIWEN", "BALILI", "ANGOLUAN"
+    ]);
+
+    const tablesHtml = uniqueCompanies.map(company => {
+      const companyCadets = cadets.filter(c => c.company.toUpperCase() === company);
+      
+      const dietCadetsMap: { [diet: string]: Cadet[] } = {};
+      dietColumns.forEach(diet => {
+        dietCadetsMap[diet] = companyCadets.filter(c => c.diets[diet] === true);
+      });
+
+      let maxRows = 0;
+      dietColumns.forEach(diet => {
+        if (dietCadetsMap[diet].length > maxRows) {
+          maxRows = dietCadetsMap[diet].length;
+        }
+      });
+
+      let rowsHtml = "";
+      for (let i = 0; i < maxRows; i++) {
+        rowsHtml += "<tr>";
+        rowsHtml += "<td></td>";
+        
+        dietColumns.forEach(diet => {
+          const cadet = dietCadetsMap[diet][i];
+          if (cadet) {
+            const isFemale = FEMALE_CADETS.has(cadet.name.toUpperCase());
+            const textClass = isFemale ? 'class="female-cadet"' : "";
+            rowsHtml += `<td ${textClass}>${cadet.class} ${cadet.name}</td>`;
+          } else {
+            rowsHtml += "<td></td>";
+          }
+        });
+        rowsHtml += "</tr>";
+      }
+
+      let totalRowHtml = "<tr>";
+      totalRowHtml += "<td class='total-label'>TOTAL</td>";
+      dietColumns.forEach(diet => {
+        const count = dietCadetsMap[diet].length;
+        totalRowHtml += `<td class="total-val">${count}</td>`;
+      });
+      totalRowHtml += "</tr>";
+
+      return `
+        <div class="company-section">
+          <table class="diet-table">
+            <thead>
+              <tr class="header-row-1">
+                <th>${company}</th>
+                ${dietColumns.map(diet => `<th>${diet}</th>`).join('')}
+              </tr>
+              <tr class="header-row-2">
+                <th>${company}</th>
+                ${dietColumns.map(diet => `<th>${diet}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+              ${totalRowHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
+
+    const printContent = \`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Special Diet Report - CCAFP Mess Council</title>
+        <style>
+          @media print {
+            @page {
+              size: landscape;
+              margin: 10mm 15mm 15mm 15mm;
+            }
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .no-print {
+              display: none;
+            }
+          }
+
+          body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            background-color: #fff;
+          }
+
+          .print-header {
+            text-align: center;
+            margin-bottom: 25px;
+            line-height: 1.4;
+          }
+
+          .header-title-1 {
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+
+          .header-title-2 {
+            font-size: 13pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 2px;
+          }
+
+          .header-title-3 {
+            font-size: 11pt;
+            margin-top: 2px;
+          }
+
+          .header-title-4 {
+            font-size: 11pt;
+            margin-top: 2px;
+          }
+
+          .print-datetime {
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 30px;
+            letter-spacing: 0.5px;
+          }
+
+          .company-section {
+            margin-bottom: 40px;
+            page-break-after: always;
+          }
+          
+          .company-section:last-child {
+            page-break-after: avoid;
+          }
+
+          .diet-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+            table-layout: fixed;
+          }
+
+          .diet-table th, .diet-table td {
+            border: 1px solid #ccc;
+            padding: 6px 4px;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .header-row-1 th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            text-align: left;
+            font-size: 9pt;
+          }
+
+          .header-row-2 th {
+            background-color: #b6d7a8;
+            color: #000;
+            font-weight: bold;
+            text-align: left;
+            font-size: 9pt;
+          }
+
+          .header-row-1 th {
+            background-color: #f2f2f2 !important;
+          }
+          .header-row-2 th {
+            background-color: #b6d7a8 !important;
+          }
+
+          .female-cadet {
+            color: #d93025;
+            font-weight: 500;
+          }
+
+          .total-label {
+            font-weight: bold;
+            background-color: #f9f9f9;
+          }
+
+          .total-val {
+            font-weight: bold;
+            background-color: #f9f9f9;
+            text-align: left;
+          }
+
+          .total-label, .total-val {
+            background-color: #f9f9f9 !important;
+            border-top: 2px solid #333;
+            border-bottom: 2px double #333;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-header">
+          <div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>
+          <div class="header-title-2">Mess Council</div>
+          <div class="header-title-3">Fort General Gregorio H. del Pilar</div>
+          <div class="header-title-4">Baguio City</div>
+        </div>
+
+        <div class="print-datetime">\${formattedDateTime}</div>
+
+        \${tablesHtml}
+
+        <script>
+          window.onload = function() {
+            window.print();
+          }
+        </script>
+      </body>
+      </html>
+    \`;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+    } else {
+      alert("Could not open print window. Please disable your pop-up blocker.");
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       {/* Premium Hero Banner */}
@@ -307,7 +571,19 @@ export default function DashboardPage() {
             </span>
           </p>
         </div>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: "flex", gap: "10px" }}>
+          {user && user.role === "RMESSO" && (
+            <button 
+              className="btn btn-primary" 
+              onClick={handlePrintSpecialDietReport}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: "16px", height: "16px" }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span>Print Special Diet Report</span>
+            </button>
+          )}
           <button className="btn btn-accent" onClick={fetchSpreadsheetData} disabled={loading}>
             {loading ? (
               <>
