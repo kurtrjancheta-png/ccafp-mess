@@ -563,35 +563,35 @@ export default function DashboardPage() {
         ".page-container { page-break-after: always; break-after: page; padding: 3px; box-sizing: border-box; }" +
         ".page-container:last-child { page-break-after: avoid; break-after: avoid; }" +
         ".print-header { text-align: center; line-height: 1.1; margin-bottom: 2px; }" +
-        ".header-title-1 { font-size: 8pt; font-weight: bold; text-transform: uppercase; }" +
-        ".header-title-2 { font-size: 7pt; font-weight: bold; text-transform: uppercase; margin-top: 1px; }" +
-        ".header-title-3 { font-size: 6pt; margin-top: 1px; }" +
-        ".header-title-4 { font-size: 6pt; margin-top: 1px; }" +
-        ".print-datetime { text-align: center; font-size: 6pt; font-weight: bold; margin-bottom: 2px; }" +
+        ".header-title-1 { font-size: 9.2pt; font-weight: bold; text-transform: uppercase; }" +
+        ".header-title-2 { font-size: 8pt; font-weight: bold; text-transform: uppercase; margin-top: 1px; }" +
+        ".header-title-3 { font-size: 7pt; margin-top: 1px; }" +
+        ".header-title-4 { font-size: 7pt; margin-top: 1px; }" +
+        ".print-datetime { text-align: center; font-size: 7pt; font-weight: bold; margin-bottom: 2px; }" +
         ".companies-wrapper { display: flex; gap: 8px; width: 100%; align-items: stretch; }" +
         ".company-card { flex: 1; border: 1.2px solid #666; border-radius: 4px; padding: 3px 6px; background-color: #fff; display: flex; flex-direction: column; gap: 2.5px; page-break-inside: avoid; break-inside: avoid; }" +
-        ".company-name-banner { font-size: 6.5pt; font-weight: bold; background-color: #f2f2f2; padding: 1.5px 3px; border-radius: 2px; text-transform: uppercase; border-left: 2.5px solid #b6d7a8; }" +
+        ".company-name-banner { font-size: 7.5pt; font-weight: bold; background-color: #f2f2f2; padding: 1.5px 3px; border-radius: 2px; text-transform: uppercase; border-left: 2.5px solid #b6d7a8; }" +
         ".diets-flex-container { display: flex; flex-wrap: wrap; gap: 4px; }" +
-        ".diet-column { flex: 1 1 70px; max-width: 100px; border: 1px solid #ccc; border-radius: 3px; background-color: #fafafa; padding: 1.5px; display: flex; flex-direction: column; gap: 1px; page-break-inside: avoid; break-inside: avoid; }" +
-        ".diet-column-header { font-size: 5.2pt; font-weight: bold; background-color: #b6d7a8 !important; color: #000; padding: 1px 1.5px; border-radius: 2px; text-align: center; text-transform: uppercase; }" +
-        ".cadet-list { list-style: none; padding: 0; margin: 0; font-size: 5.2pt; }" +
+        ".diet-column { flex: 1 1 78px; max-width: 110px; border: 1px solid #ccc; border-radius: 3px; background-color: #fafafa; padding: 1.5px; display: flex; flex-direction: column; gap: 1px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".diet-column-header { font-size: 6pt; font-weight: bold; background-color: #b6d7a8 !important; color: #000; padding: 1px 1.5px; border-radius: 2px; text-align: center; text-transform: uppercase; }" +
+        ".cadet-list { list-style: none; padding: 0; margin: 0; font-size: 6pt; }" +
         ".cadet-list li { padding: 0.8px 1.2px; border-bottom: 1px solid #eee; }" +
         ".cadet-list li:last-child { border-bottom: none; }" +
         ".female-cadet { color: #d93025 !important; font-weight: bold; }" +
         ".company-totals-section { border-top: 1px dashed #999; padding-top: 2px; display: flex; flex-direction: column; gap: 1px; }" +
-        ".company-total-row { display: flex; font-size: 5.2pt; background-color: #f9f9f9 !important; padding: 0.8px 1.5px; border-radius: 2px; border: 1px solid #ddd; page-break-inside: avoid; break-inside: avoid; }" +
-        ".total-row-label { font-weight: bold; width: 60px; min-width: 60px; color: #000; text-transform: uppercase; }" +
+        ".company-total-row { display: flex; font-size: 6pt; background-color: #f9f9f9 !important; padding: 0.8px 1.5px; border-radius: 2px; border: 1px solid #ddd; page-break-inside: avoid; break-inside: avoid; }" +
+        ".total-row-label { font-weight: bold; width: 70px; min-width: 70px; color: #000; text-transform: uppercase; }" +
         ".total-row-values { flex-grow: 1; color: #333; }" +
         ".document-title-strip { display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #000; padding-bottom: 1.5px; margin-bottom: 5px; }" +
-        ".doc-title { font-size: 8.5pt; font-weight: 800; color: #000; letter-spacing: 0.5px; text-transform: uppercase; }" +
-        ".batt-title { font-size: 7.5pt; font-weight: 700; color: #444; text-transform: uppercase; }" +
+        ".doc-title { font-size: 9.8pt; font-weight: 800; color: #000; letter-spacing: 0.5px; text-transform: uppercase; }" +
+        ".batt-title { font-size: 8.5pt; font-weight: 700; color: #444; text-transform: uppercase; }" +
         ".summary-cards-wrapper { display: flex; gap: 8px; width: 100%; align-items: stretch; }" +
         ".summary-card { flex: 1; border: 1.5px solid #666; border-radius: 4px; padding: 6px; background-color: #fff; display: flex; flex-direction: column; gap: 4px; page-break-inside: avoid; break-inside: avoid; }" +
         ".summary-card:last-child { border-color: #000; border-width: 2.5px; background-color: #fcfcfc; }" +
-        ".summary-card-title { font-size: 6.2pt; font-weight: bold; background-color: #f2f2f2; padding: 2px 3px; border-radius: 4px; text-align: center; border-bottom: 3.5px solid #b6d7a8; text-transform: uppercase; line-height: 1.2; }" +
+        ".summary-card-title { font-size: 7pt; font-weight: bold; background-color: #f2f2f2; padding: 2px 3px; border-radius: 4px; text-align: center; border-bottom: 3.5px solid #b6d7a8; text-transform: uppercase; line-height: 1.2; }" +
         ".summary-card:last-child .summary-card-title { background-color: #333; color: #fff; border-bottom-color: #d93025; }" +
         ".summary-card-values { display: flex; flex-direction: column; gap: 3px; }" +
-        ".summary-item { display: flex; justify-content: space-between; font-size: 5.2pt; border-bottom: 1px solid #eee; padding-bottom: 1.2px; }" +
+        ".summary-item { display: flex; justify-content: space-between; font-size: 6pt; border-bottom: 1px solid #eee; padding-bottom: 1.2px; }" +
         ".summary-item:last-child { border-bottom: none; }" +
         ".summary-item-label { font-weight: 600; color: #444; text-transform: uppercase; }" +
         ".summary-item-val { font-weight: 700; color: #000; }" +
