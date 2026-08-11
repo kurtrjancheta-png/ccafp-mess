@@ -798,36 +798,42 @@ function saveViands(viandsList) {
     throw new Error("Required column 'VIAND' was not found in the Viands sheet.");
   }
   
-  // Gather existing viand names (case-insensitive, trimmed)
-  var existingViands = {};
+  // Gather existing viand names (case-insensitive, trimmed) to row numbers (1-indexed)
+  var viandRowMap = {};
   for (var i = 1; i < values.length; i++) {
     var name = values[i][viandColIdx] ? values[i][viandColIdx].toString().toUpperCase().trim() : "";
     if (name) {
-      existingViands[name] = true;
+      viandRowMap[name] = i + 1;
     }
   }
   
-  // Append new viands
+  // Upsert viands
   viandsList.forEach(function(item) {
     if (!item.viand) return;
     var nameUpper = item.viand.toUpperCase().trim();
-    // Only add if it does not already exist
-    if (!existingViands[nameUpper]) {
-      var rowData = new Array(headers.length).fill("");
-      rowData[viandColIdx] = item.viand.trim(); // Keep original casing
-      
-      cleanHeaders.forEach(function(header, colIdx) {
-        if (colIdx === viandColIdx) return;
-        // Check if item's diets contains this header
-        if (item.diets && (item.diets[header] === 1 || item.diets[header] === "1" || item.diets[header] === true)) {
-          rowData[colIdx] = 1;
-        } else {
-          rowData[colIdx] = "";
-        }
-      });
-      
+    
+    var rowData = new Array(headers.length).fill("");
+    rowData[viandColIdx] = item.viand.trim(); // Keep original casing
+    
+    cleanHeaders.forEach(function(header, colIdx) {
+      if (colIdx === viandColIdx) return;
+      // Check if item's diets contains this header
+      if (item.diets && (item.diets[header] === 1 || item.diets[header] === "1" || item.diets[header] === true)) {
+        rowData[colIdx] = 1;
+      } else {
+        rowData[colIdx] = "";
+      }
+    });
+    
+    var existingRow = viandRowMap[nameUpper];
+    if (existingRow) {
+      // Update existing row
+      var range = viandsSheet.getRange(existingRow, 1, 1, headers.length);
+      range.setValues([rowData]);
+    } else {
+      // Append new row
       viandsSheet.appendRow(rowData);
-      existingViands[nameUpper] = true; // prevent duplicate in same batch
+      viandRowMap[nameUpper] = viandsSheet.getLastRow(); // update map in case it appears again in batch
     }
   });
   

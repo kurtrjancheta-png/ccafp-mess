@@ -103,9 +103,10 @@ export default function MenuPage() {
   const [editMenuState, setEditMenuState] = useState<WeeklyMenuState>(DEFAULT_WEEKLY_MENU);
   const [editActiveDay, setEditActiveDay] = useState("Monday");
   
-  // Step-2 Modal Configuration for New Viands
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [newViandsToConfig, setNewViandsToConfig] = useState<{ viand: string; diets: { [d: string]: boolean } }[]>([]);
+  // Progressive dietary dictionary (case-insensitive keys mapping to checklist map)
+  const [localViandsDiets, setLocalViandsDiets] = useState<{ [viandName: string]: { [restriction: string]: boolean } }>({});
+  // Track open status of inline diet editor panels
+  const [openDietFields, setOpenDietFields] = useState<{ [fieldId: string]: boolean }>({});
   
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -113,7 +114,6 @@ export default function MenuPage() {
   // Autocomplete UI States
   const [focusedField, setFocusedField] = useState<{ day: string; meal: "morning" | "noon" | "evening" | "pmSnack"; field: string } | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const activeInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     fetchMenuAndViands();
@@ -184,6 +184,8 @@ export default function MenuPage() {
       // 1. Fetch Viands Database first for lookups
       const viandsRes = await fetch(viandsUrl);
       let parsedViands: ViandRecord[] = [];
+      const initialDiets: { [viand: string]: { [d: string]: boolean } } = {};
+      
       if (viandsRes.ok) {
         const csvText = await viandsRes.text();
         const rows = parseCSV(csvText);
@@ -201,10 +203,12 @@ export default function MenuPage() {
               viand: row[0],
               diets: dietsMap
             });
+            initialDiets[row[0].toUpperCase().trim()] = dietsMap;
           }
         }
       }
       setViandsDb(parsedViands);
+      setLocalViandsDiets(initialDiets);
 
       // 2. Fetch Weekly Menu
       const menuRes = await fetch(menuUrl);
@@ -269,13 +273,12 @@ export default function MenuPage() {
     }
   };
 
-  // Maps database restriction tags like `NO PORK` to cadet warnings like `Contains Pork`
+  // Maps database GID restriction columns to UI display text
   const getDietWarnings = (viandName: string): string[] => {
     if (!viandName) return [];
     const cleanViand = viandName.trim().toUpperCase();
     const record = viandsDb.find(v => v.viand.toUpperCase().trim() === cleanViand);
     if (!record) {
-      // Static fallback scan for matching substrings if not in database
       return getStaticWarnings(viandName);
     }
 
@@ -283,6 +286,30 @@ export default function MenuPage() {
     Object.keys(record.diets).forEach(restriction => {
       if (record.diets[restriction]) {
         warnings.push(formatDietName(restriction));
+      }
+    });
+    return warnings;
+  };
+
+  const getLocalDietDiets = (viandName: string): { [d: string]: boolean } => {
+    if (!viandName) return {};
+    const key = viandName.toUpperCase().trim();
+    return localViandsDiets[key] || {};
+  };
+
+  const getLocalDietWarnings = (viandName: string): string[] => {
+    if (!viandName) return [];
+    const key = viandName.toUpperCase().trim();
+    const diets = localViandsDiets[key];
+    if (!diets) {
+      // Static scanning fallback for new items
+      return getStaticWarnings(viandName);
+    }
+
+    const warnings: string[] = [];
+    Object.keys(diets).forEach(col => {
+      if (diets[col]) {
+        warnings.push(formatDietName(col));
       }
     });
     return warnings;
@@ -320,14 +347,13 @@ export default function MenuPage() {
     return warnings;
   };
 
-  // Autocomplete functionality
+  // Autocomplete suggestions
   const handleInputChange = (
     day: string,
     meal: "morning" | "noon" | "evening" | "pmSnack",
     field: string,
     value: string
   ) => {
-    // Update value in local state
     setEditMenuState(prev => {
       const next = { ...prev };
       if (meal === "pmSnack") {
@@ -341,7 +367,23 @@ export default function MenuPage() {
       return next;
     });
 
-    // Populate autocomplete suggestions
+    if (value && value.trim()) {
+      const key = value.toUpperCase().trim();
+      if (!localViandsDiets[key]) {
+        // Pre-configure initial diets using smart static scanning guess to save effort!
+        const staticGuess = getStaticWarnings(value);
+        const newDietSettings: { [d: string]: boolean } = {};
+        DEFAULT_DIET_COLUMNS.forEach(col => {
+          const formatted = formatDietName(col).toUpperCase();
+          newDietSettings[col] = staticGuess.some(w => w.toUpperCase() === formatted);
+        });
+        setLocalViandsDiets(prev => ({
+          ...prev,
+          [key]: newDietSettings
+        }));
+      }
+    }
+
     if (!value || value.trim().length < 1) {
       setSuggestions([]);
       return;
@@ -351,7 +393,7 @@ export default function MenuPage() {
     const matches = viandsDb
       .filter(v => v.viand.toLowerCase().includes(cleanInput))
       .map(v => v.viand)
-      .slice(0, 5); // Limit to top 5 suggestions
+      .slice(0, 5);
 
     setSuggestions(matches);
   };
@@ -378,14 +420,34 @@ export default function MenuPage() {
     setFocusedField(null);
   };
 
-  // Convert WeeklyMenuState to 2D Array matching Weekly Menu Sheet format
+  // Toggles active restriction on local state
+  const toggleViandDiet = (viandName: string, restrictionName: string) => {
+    if (!viandName) return;
+    const key = viandName.toUpperCase().trim();
+    setLocalViandsDiets(prev => {
+      const current = prev[key] || {};
+      const next = { ...current };
+      
+      // Initialize blank states if completely empty
+      if (Object.keys(next).length === 0) {
+        DEFAULT_DIET_COLUMNS.forEach(col => {
+          next[col] = false;
+        });
+      }
+      next[restrictionName] = !next[restrictionName];
+      return {
+        ...prev,
+        [key]: next
+      };
+    });
+  };
+
+  // Convert state back to 2D Array matching sheets cells
   const constructMenuCSVRows = (weeklyMenu: WeeklyMenuState): string[][] => {
     const rows: string[][] = Array.from({ length: 26 }, () => Array(8).fill(""));
     
-    // Header
     rows[0] = ["", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
     
-    // Row Labels
     rows[1][0] = "MORNING MESS";
     rows[2][0] = "1ST VIAND";
     rows[3][0] = "2ND VIAND";
@@ -449,9 +511,8 @@ export default function MenuPage() {
     return rows;
   };
 
-  // Primary save trigger: scans for new unique viands in menu
-  const handleSaveMenuAttempt = () => {
-    // 1. Gather all unique entered foods (exclude standard labels like rice and drinks if safe, but we scan all to be thorough)
+  const handleSaveMenu = async () => {
+    // 1. Gather all unique entered viands
     const enteredViands = new Set<string>();
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     
@@ -468,63 +529,23 @@ export default function MenuPage() {
       if (d.pmSnack) enteredViands.add(d.pmSnack.trim());
     });
 
-    // 2. Identify which viands are NOT in the database (case-insensitive check)
-    const newViandsList: { viand: string; diets: { [d: string]: boolean } }[] = [];
-    const dbKeys = new Set(viandsDb.map(v => v.viand.toUpperCase().trim()));
-
+    // 2. Prepare payload list mapping key values
+    const viandsToSave: { viand: string; diets: { [col: string]: number } }[] = [];
     enteredViands.forEach(v => {
-      const upper = v.toUpperCase().trim();
-      // Exclude simple fillers
-      if (!v || upper === "STEAMED RICE" || upper === "GARLIC RICE" || upper === "WATER") return;
-
-      if (!dbKeys.has(upper)) {
-        // Prepare blank diets
-        const blankDiets: { [d: string]: boolean } = {};
-        DEFAULT_DIET_COLUMNS.forEach(col => {
-          blankDiets[col] = false;
-        });
-        newViandsList.push({
-          viand: v,
-          diets: blankDiets
-        });
-      }
+      const key = v.toUpperCase().trim();
+      if (key === "STEAMED RICE" || key === "GARLIC RICE" || key === "WATER" || !v) return;
+      
+      const diets = localViandsDiets[key] || {};
+      const sheetDiets: { [col: string]: number } = {};
+      DEFAULT_DIET_COLUMNS.forEach(col => {
+        sheetDiets[col] = diets[col] ? 1 : 0;
+      });
+      viandsToSave.push({
+        viand: v,
+        diets: sheetDiets
+      });
     });
 
-    if (newViandsList.length > 0) {
-      // Show Step-2 configuration modal for these new viands
-      setNewViandsToConfig(newViandsList);
-      setShowConfigModal(true);
-    } else {
-      // Save directly since all viands are already registered!
-      saveMenuToSheets(editMenuState, []);
-    }
-  };
-
-  // Toggles dietary restrictions in Step-2 modal
-  const toggleNewViandDiet = (viandIndex: number, restrictionName: string) => {
-    setNewViandsToConfig(prev => 
-      prev.map((item, idx) => {
-        if (idx !== viandIndex) return item;
-        return {
-          ...item,
-          diets: {
-            ...item.diets,
-            [restrictionName]: !item.diets[restrictionName]
-          }
-        };
-      })
-    );
-  };
-
-  const handleConfigConfirm = () => {
-    setShowConfigModal(false);
-    saveMenuToSheets(editMenuState, newViandsToConfig);
-  };
-
-  const saveMenuToSheets = async (
-    menuStateToSave: WeeklyMenuState,
-    newViands: { viand: string; diets: { [d: string]: boolean } }[]
-  ) => {
     const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL;
     if (!appsScriptUrl) {
       alert("Google Apps Script URL is not configured. Menu could not be updated.");
@@ -535,23 +556,11 @@ export default function MenuPage() {
     setError(null);
     setSuccessMsg(null);
 
-    // Format new viands list for sheet (putting 1 if restricted)
-    const formattedViandsForSheet = newViands.map(item => {
-      const sheetDiets: { [col: string]: number } = {};
-      Object.keys(item.diets).forEach(key => {
-        sheetDiets[key] = item.diets[key] ? 1 : 0;
-      });
-      return {
-        viand: item.viand,
-        diets: sheetDiets
-      };
-    });
-
-    const rows = constructMenuCSVRows(menuStateToSave);
+    const rows = constructMenuCSVRows(editMenuState);
     const payload = {
       action: "saveWeeklyMenuAndViands",
       rows: rows,
-      viands: formattedViandsForSheet
+      viands: viandsToSave
     };
 
     try {
@@ -569,8 +578,9 @@ export default function MenuPage() {
 
       const resJson = await response.json();
       if (resJson.success) {
-        setSuccessMsg("Weekly Menu and progressive Viands Database saved to Google Sheets!");
+        setSuccessMsg("Weekly Menu and progressive Viands Database saved successfully!");
         setShowEditModal(false);
+        setOpenDietFields({}); // Reset open panels
         fetchMenuAndViands(); // Reload fresh state
         setTimeout(() => setSuccessMsg(null), 5000);
       } else {
@@ -584,7 +594,7 @@ export default function MenuPage() {
     }
   };
 
-  // Closes suggestion popup when clicking outside
+  // Closes suggestions on click outside
   useEffect(() => {
     const clickOutside = () => {
       setSuggestions([]);
@@ -638,6 +648,152 @@ export default function MenuPage() {
     );
   };
 
+  // Helper to render editable input block with inline tag checklist
+  const renderEditField = (
+    meal: "morning" | "noon" | "evening" | "pmSnack",
+    field: string,
+    label: string
+  ) => {
+    const fKey = field as keyof Meal;
+    const val = meal === "pmSnack" ? editMenuState[editActiveDay].pmSnack : editMenuState[editActiveDay][meal][fKey] || "";
+    const uniqueId = `${meal}-${field}`;
+    const fieldId = `${meal}-${field}`;
+    const isOpen = !!openDietFields[fieldId];
+    const warnings = getLocalDietWarnings(val);
+    const diets = getLocalDietDiets(val);
+
+    return (
+      <div key={field} className="form-group autocomplete-wrapper" style={{ margin: 0, position: "relative" }}>
+        <label htmlFor={uniqueId} style={{ fontSize: "0.65rem", color: "var(--muted)" }}>{label}</label>
+        
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <input
+            id={uniqueId}
+            type="text"
+            className="input-field"
+            style={{ padding: "8px 10px", fontSize: "0.8rem", flexGrow: 1 }}
+            value={val}
+            autoComplete="off"
+            onFocus={() => setFocusedField({ day: editActiveDay, meal, field })}
+            onChange={(e) => handleInputChange(editActiveDay, meal, field, e.target.value)}
+          />
+          
+          {val.trim() && (
+            <button
+              type="button"
+              className={`diet-toggle-btn ${isOpen ? "active" : ""}`}
+              style={{
+                padding: "6px 8px",
+                borderRadius: "6px",
+                border: "1.2px solid var(--border-color)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: isOpen ? "var(--primary)" : "var(--background)",
+                color: isOpen ? "white" : "var(--muted)",
+                transition: "all 0.15s",
+                height: "36px",
+                width: "36px",
+                flexShrink: 0
+              }}
+              onClick={() => setOpenDietFields(prev => ({ ...prev, [fieldId]: !prev[fieldId] }))}
+              title="Edit Dietary warnings for this item"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: "16px", height: "16px" }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Autocomplete Suggestions dropdown */}
+        {focusedField?.day === editActiveDay && 
+         focusedField?.meal === meal && 
+         focusedField?.field === field && 
+         suggestions.length > 0 && (
+          <ul className="suggestion-dropdown">
+            {suggestions.map(sug => (
+              <li 
+                key={sug} 
+                className="suggestion-item"
+                onMouseDown={() => {
+                  selectSuggestion(editActiveDay, meal, field, sug);
+                  const matched = viandsDb.find(v => v.viand === sug);
+                  if (matched) {
+                    setLocalViandsDiets(prev => ({
+                      ...prev,
+                      [sug.toUpperCase().trim()]: matched.diets
+                    }));
+                  }
+                }}
+              >
+                {sug}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Active tags badges summary */}
+        {val.trim() && warnings.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", marginTop: "4px" }}>
+            {warnings.map(w => (
+              <span key={w} className="badge badge-diet" style={{ fontSize: "0.52rem", padding: "0.5px 5px", textTransform: "uppercase", fontWeight: 700 }}>
+                {w}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Inline Collapsible Tag Editor */}
+        {val.trim() && isOpen && (
+          <div 
+            className="animate-fade-in" 
+            style={{ 
+              marginTop: "8px", 
+              padding: "10px", 
+              border: "1.2px solid var(--primary-light)", 
+              borderRadius: "10px", 
+              backgroundColor: "var(--card-bg)",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+              zIndex: 5,
+              position: "relative"
+            }}
+          >
+            <span style={{ fontSize: "0.6rem", fontWeight: 800, color: "var(--primary)", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+              Select Ingredients Contained:
+            </span>
+            <div className="viand-pills-container" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(75px, 1fr))", gap: "4px" }}>
+              {DEFAULT_DIET_COLUMNS.map((col) => {
+                const cleanName = formatDietName(col);
+                const isPillActive = !!diets[col];
+                return (
+                  <div
+                    key={col}
+                    className={`viand-pill ${isPillActive ? "active" : "inactive"}`}
+                    style={{
+                      padding: "3px 5px",
+                      fontSize: "0.58rem",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      textAlign: "center",
+                      textOverflow: "ellipsis",
+                      overflow: "hidden"
+                    }}
+                    onClick={() => toggleViandDiet(val, col)}
+                    title={`Contains ${cleanName}`}
+                  >
+                    {cleanName}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="animate-fade-in" style={{ position: "relative" }}>
       {/* Dynamic Style Injection for Modals and Input Fields */}
@@ -683,9 +839,9 @@ export default function MenuPage() {
           border-radius: 16px;
           box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
           width: 100%;
-          max-width: 900px;
+          max-width: 950px;
           height: 90%;
-          max-height: 750px;
+          max-height: 780px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -755,7 +911,7 @@ export default function MenuPage() {
         .fields-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
+          gap: 16px;
         }
         .autocomplete-wrapper {
           position: relative;
@@ -924,7 +1080,7 @@ export default function MenuPage() {
               {renderMealItems(currentMeals.evening)}
             </div>
 
-            {/* PM Snack Card (New Category) */}
+            {/* PM Snack Card */}
             <div className="meal-card breakfast animate-fade-in animate-stagger-4" style={{ minHeight: "150px" }}>
               <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>PM Snack</span>
@@ -962,17 +1118,20 @@ export default function MenuPage() {
         </p>
       </div>
 
-      {/* WORKSPACE MODAL - STEP 1 (EDIT CELL VALUES) */}
+      {/* WORKSPACE MODAL (EDIT CELL VALUES & INLINE DIETARY TOGGLES) */}
       {showEditModal && createPortal(
         <div className="modal-fullscreen" onClick={() => setShowEditModal(false)}>
           <div className="modal-card-workspace" onClick={(e) => e.stopPropagation()}>
             <div className="workspace-header">
               <div>
                 <h3 style={{ margin: 0, fontSize: "1.1rem", color: "var(--secondary)" }}>Edit Weekly Menu Board</h3>
-                <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>RMESSO Administration Workspace</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>RMESSO Administration Workspace (Dietary options configured per food item)</span>
               </div>
               <button 
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false);
+                  setOpenDietFields({});
+                }}
                 style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--muted)" }}
               >
                 &times;
@@ -997,7 +1156,9 @@ export default function MenuPage() {
               <div className="workspace-fields-panel">
                 <div style={{ marginBottom: "1rem" }}>
                   <h4 style={{ margin: 0, fontSize: "1.05rem", color: "var(--secondary)" }}>Editing Plan for {editActiveDay}</h4>
-                  <span style={{ fontSize: "0.7rem", color: "var(--muted)" }}>Click suggestions when typing to link allergen data.</span>
+                  <span style={{ fontSize: "0.7rem", color: "var(--muted)" }}>
+                    Type the name of food items. Click the warning shield icon next to each field to configure ingredients.
+                  </span>
                 </div>
 
                 {/* MORNING MESS */}
@@ -1005,40 +1166,8 @@ export default function MenuPage() {
                   <div className="meal-section-title">Morning Mess (Breakfast)</div>
                   <div className="fields-grid">
                     {["viand1", "viand2", "viand3", "viand4", "drink", "rice"].map((field) => {
-                      const fKey = field as keyof Meal;
-                      const uniqueId = `morning-${field}`;
                       const label = field.toUpperCase().replace("VIAND", "VIAND ").replace("RICE", "RICE/CARB");
-                      return (
-                        <div key={field} className="form-group autocomplete-wrapper" style={{ margin: 0 }}>
-                          <label htmlFor={uniqueId} style={{ fontSize: "0.65rem", color: "var(--muted)" }}>{label}</label>
-                          <input
-                            id={uniqueId}
-                            type="text"
-                            className="input-field"
-                            style={{ padding: "8px 10px", fontSize: "0.8rem" }}
-                            value={editMenuState[editActiveDay].morning[fKey]}
-                            autoComplete="off"
-                            onFocus={() => setFocusedField({ day: editActiveDay, meal: "morning", field })}
-                            onChange={(e) => handleInputChange(editActiveDay, "morning", field, e.target.value)}
-                          />
-                          {focusedField?.day === editActiveDay && 
-                           focusedField?.meal === "morning" && 
-                           focusedField?.field === field && 
-                           suggestions.length > 0 && (
-                            <ul className="suggestion-dropdown">
-                              {suggestions.map(sug => (
-                                <li 
-                                  key={sug} 
-                                  className="suggestion-item"
-                                  onMouseDown={() => selectSuggestion(editActiveDay, "morning", field, sug)}
-                                >
-                                  {sug}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      );
+                      return renderEditField("morning", field, label);
                     })}
                   </div>
                 </div>
@@ -1048,40 +1177,8 @@ export default function MenuPage() {
                   <div className="meal-section-title">Noon Mess (Lunch)</div>
                   <div className="fields-grid">
                     {["viand1", "viand2", "viand3", "viand4", "drink", "rice"].map((field) => {
-                      const fKey = field as keyof Meal;
-                      const uniqueId = `noon-${field}`;
                       const label = field.toUpperCase().replace("VIAND", "VIAND ").replace("RICE", "RICE/CARB");
-                      return (
-                        <div key={field} className="form-group autocomplete-wrapper" style={{ margin: 0 }}>
-                          <label htmlFor={uniqueId} style={{ fontSize: "0.65rem", color: "var(--muted)" }}>{label}</label>
-                          <input
-                            id={uniqueId}
-                            type="text"
-                            className="input-field"
-                            style={{ padding: "8px 10px", fontSize: "0.8rem" }}
-                            value={editMenuState[editActiveDay].noon[fKey]}
-                            autoComplete="off"
-                            onFocus={() => setFocusedField({ day: editActiveDay, meal: "noon", field })}
-                            onChange={(e) => handleInputChange(editActiveDay, "noon", field, e.target.value)}
-                          />
-                          {focusedField?.day === editActiveDay && 
-                           focusedField?.meal === "noon" && 
-                           focusedField?.field === field && 
-                           suggestions.length > 0 && (
-                            <ul className="suggestion-dropdown">
-                              {suggestions.map(sug => (
-                                <li 
-                                  key={sug} 
-                                  className="suggestion-item"
-                                  onMouseDown={() => selectSuggestion(editActiveDay, "noon", field, sug)}
-                                >
-                                  {sug}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      );
+                      return renderEditField("noon", field, label);
                     })}
                   </div>
                 </div>
@@ -1091,40 +1188,8 @@ export default function MenuPage() {
                   <div className="meal-section-title">Evening Mess (Dinner)</div>
                   <div className="fields-grid">
                     {["viand1", "viand2", "viand3", "viand4", "drink", "rice"].map((field) => {
-                      const fKey = field as keyof Meal;
-                      const uniqueId = `evening-${field}`;
                       const label = field.toUpperCase().replace("VIAND", "VIAND ").replace("RICE", "RICE/CARB");
-                      return (
-                        <div key={field} className="form-group autocomplete-wrapper" style={{ margin: 0 }}>
-                          <label htmlFor={uniqueId} style={{ fontSize: "0.65rem", color: "var(--muted)" }}>{label}</label>
-                          <input
-                            id={uniqueId}
-                            type="text"
-                            className="input-field"
-                            style={{ padding: "8px 10px", fontSize: "0.8rem" }}
-                            value={editMenuState[editActiveDay].evening[fKey]}
-                            autoComplete="off"
-                            onFocus={() => setFocusedField({ day: editActiveDay, meal: "evening", field })}
-                            onChange={(e) => handleInputChange(editActiveDay, "evening", field, e.target.value)}
-                          />
-                          {focusedField?.day === editActiveDay && 
-                           focusedField?.meal === "evening" && 
-                           focusedField?.field === field && 
-                           suggestions.length > 0 && (
-                            <ul className="suggestion-dropdown">
-                              {suggestions.map(sug => (
-                                <li 
-                                  key={sug} 
-                                  className="suggestion-item"
-                                  onMouseDown={() => selectSuggestion(editActiveDay, "evening", field, sug)}
-                                >
-                                  {sug}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      );
+                      return renderEditField("evening", field, label);
                     })}
                   </div>
                 </div>
@@ -1132,35 +1197,7 @@ export default function MenuPage() {
                 {/* PM SNACK */}
                 <div className="meal-section-group">
                   <div className="meal-section-title">PM Snack</div>
-                  <div className="form-group autocomplete-wrapper" style={{ margin: 0 }}>
-                    <label htmlFor="snack-field" style={{ fontSize: "0.65rem", color: "var(--muted)" }}>SNACK ITEM</label>
-                    <input
-                      id="snack-field"
-                      type="text"
-                      className="input-field"
-                      style={{ padding: "8px 10px", fontSize: "0.8rem" }}
-                      value={editMenuState[editActiveDay].pmSnack}
-                      autoComplete="off"
-                      onFocus={() => setFocusedField({ day: editActiveDay, meal: "pmSnack", field: "pmSnack" })}
-                      onChange={(e) => handleInputChange(editActiveDay, "pmSnack", "pmSnack", e.target.value)}
-                    />
-                    {focusedField?.day === editActiveDay && 
-                     focusedField?.meal === "pmSnack" && 
-                     focusedField?.field === "pmSnack" && 
-                     suggestions.length > 0 && (
-                      <ul className="suggestion-dropdown">
-                        {suggestions.map(sug => (
-                          <li 
-                            key={sug} 
-                            className="suggestion-item"
-                            onMouseDown={() => selectSuggestion(editActiveDay, "pmSnack", "pmSnack", sug)}
-                          >
-                            {sug}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
+                  {renderEditField("pmSnack", "pmSnack", "SNACK ITEM")}
                 </div>
               </div>
             </div>
@@ -1169,7 +1206,10 @@ export default function MenuPage() {
               <button 
                 type="button" 
                 className="btn btn-outline" 
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false);
+                  setOpenDietFields({});
+                }}
                 style={{ marginRight: "10px" }}
               >
                 Cancel
@@ -1177,72 +1217,10 @@ export default function MenuPage() {
               <button 
                 type="button" 
                 className="btn btn-primary"
-                onClick={handleSaveMenuAttempt}
-              >
-                Save Weekly Menu
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* STEP 2 MODAL (NEW VIAND DIETARY CONFIG) */}
-      {showConfigModal && createPortal(
-        <div className="modal-fullscreen" style={{ zIndex: 1100 }}>
-          <div className="modal-content" style={{ maxWidth: "600px", padding: 0 }}>
-            <div className="modal-header" style={{ borderBottom: "1.5px solid var(--border-color)", padding: "1.25rem 1.5rem" }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: "1.1rem", color: "var(--secondary)" }}>Configure New Viands</h3>
-                <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>Declare ingredients to finalize cadet dietary filtering</span>
-              </div>
-            </div>
-
-            <div style={{ padding: "1.5rem", overflowY: "auto", maxHeight: "400px" }}>
-              <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "1.25rem" }}>
-                The following foods were introduced to this weekly menu. Select which dietary categories contain this viand (e.g. check "PORK" if the food contains pork so that "NO PORK" diet lists filter it):
-              </p>
-
-              {newViandsToConfig.map((item, index) => (
-                <div key={item.viand} style={{ marginBottom: "1.5rem", border: "1px solid var(--border-color)", padding: "1rem", borderRadius: "8px" }}>
-                  <h4 style={{ margin: "0 0 8px 0", fontSize: "0.95rem", color: "var(--secondary)" }}>{item.viand}</h4>
-                  
-                  <div className="viand-pills-container">
-                    {DEFAULT_DIET_COLUMNS.map((col) => {
-                      const cleanName = formatDietName(col);
-                      const isActive = item.diets[col];
-                      return (
-                        <div
-                          key={col}
-                          className={`viand-pill ${isActive ? "active" : "inactive"}`}
-                          onClick={() => toggleNewViandDiet(index, col)}
-                          title={`Contains ${cleanName}`}
-                        >
-                          {cleanName}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="modal-footer" style={{ borderTop: "1.5px solid var(--border-color)", padding: "1rem 1.5rem" }}>
-              <button 
-                type="button" 
-                className="btn btn-outline" 
-                onClick={() => setShowConfigModal(false)}
-                style={{ marginRight: "10px" }}
-              >
-                Back to Edit
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-primary"
-                onClick={handleConfigConfirm}
+                onClick={handleSaveMenu}
                 disabled={saving}
               >
-                {saving ? "Saving changes..." : "Confirm & Save Menu"}
+                {saving ? "Saving Changes..." : "Save Weekly Menu"}
               </button>
             </div>
           </div>
