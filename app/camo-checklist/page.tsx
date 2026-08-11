@@ -147,12 +147,6 @@ export default function CamoChecklistPage() {
   };
 
   const handleSave = async () => {
-    const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL;
-    if (!appsScriptUrl) {
-      alert("Google Apps Script URL is not configured. Please use Google Sheets directly to edit.");
-      return;
-    }
-
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -163,16 +157,17 @@ export default function CamoChecklistPage() {
     };
 
     try {
-      const response = await fetch(appsScriptUrl, {
+      const response = await fetch("/api/apps-script", {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        throw new Error(`Apps Script returned status ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Apps Script returned status ${response.status}`);
       }
 
       const json = await response.json();

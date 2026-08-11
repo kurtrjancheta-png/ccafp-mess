@@ -244,12 +244,6 @@ export default function DisseminationsPage() {
 
   const handleSaveDissemination = async (e: React.FormEvent) => {
     e.preventDefault();
-    const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL;
-    if (!appsScriptUrl) {
-      alert("Google Apps Script URL is not configured. Please define NEXT_PUBLIC_APPS_SCRIPT_URL in your environment.");
-      return;
-    }
-
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -288,14 +282,15 @@ export default function DisseminationsPage() {
     }
 
     try {
-      const response = await fetch(appsScriptUrl, {
+      const response = await fetch("/api/apps-script", {
         method: "POST",
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        throw new Error(`Apps Script API status ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Apps Script API status ${response.status}`);
       }
 
       const json = await response.json();
@@ -318,20 +313,14 @@ export default function DisseminationsPage() {
   const handleDeleteDissemination = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this dissemination? This action cannot be undone.")) return;
 
-    const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL;
-    if (!appsScriptUrl) {
-      alert("Apps Script URL is not configured. Unable to perform write actions.");
-      return;
-    }
-
     setSaving(true);
     setError(null);
     setSuccess(null);
 
     try {
-      const response = await fetch(appsScriptUrl, {
+      const response = await fetch("/api/apps-script", {
         method: "POST",
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "deleteDissemination",
           id: id
@@ -339,7 +328,8 @@ export default function DisseminationsPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Apps Script API status ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Apps Script API status ${response.status}`);
       }
 
       const json = await response.json();

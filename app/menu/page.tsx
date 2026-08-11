@@ -548,12 +548,6 @@ export default function MenuPage() {
       });
     });
 
-    const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL;
-    if (!appsScriptUrl) {
-      alert("Google Apps Script URL is not configured. Menu could not be updated.");
-      return;
-    }
-
     setSaving(true);
     setSaveError(null);
     setSuccessMsg(null);
@@ -566,16 +560,18 @@ export default function MenuPage() {
     };
 
     try {
-      const response = await fetch(appsScriptUrl, {
+      const response = await fetch("/api/apps-script", {
         method: "POST",
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error(`Apps Script responded with status: ${response.status}`);
+        // Parse error message if possible
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Apps Script responded with status: ${response.status}`);
       }
 
       const resJson = await response.json();
