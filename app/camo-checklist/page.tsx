@@ -11,14 +11,6 @@ interface TaskItem {
   remarks: string;
 }
 
-const MOCK_TASKS: TaskItem[] = [
-  { task: "Check food temperature for breakfast", status: "PENDING", time: "", remarks: "" },
-  { task: "Verify Yap Hall table cleanliness and layout", status: "PENDING", time: "", remarks: "" },
-  { task: "Supervise company formation outside Yap Hall", status: "PENDING", time: "", remarks: "" },
-  { task: "Inspect dining utensils sanitization status", status: "PENDING", time: "", remarks: "" },
-  { task: "Coordinate special diet table allocations", status: "PENDING", time: "", remarks: "" }
-];
-
 export default function CamoChecklistPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
@@ -26,7 +18,6 @@ export default function CamoChecklistPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<"MOCK" | "LIVE">("MOCK");
 
   const isAuthorized = user && (user.role === "CAMO" || user.role === "RMESSO");
 
@@ -102,17 +93,15 @@ export default function CamoChecklistPage() {
       
       if (parsedTasks.length > 0) {
         setTasks(parsedTasks);
-        setDataSource("LIVE");
       } else {
-        console.warn("CAMO Tasks sheet returned empty list, falling back to mock tasks.");
-        setTasks(MOCK_TASKS);
-        setDataSource("MOCK");
+        console.warn("CAMO Tasks sheet returned empty list.");
+        setTasks([]);
+        setError("Checklist spreadsheet appears to be empty.");
       }
     } catch (err: any) {
-      console.warn("Failed to fetch CAMO tasks dynamically, falling back to mock tasks:", err.message);
-      setError("Unable to connect to live checklist sheet. Loaded local tasks.");
-      setTasks(MOCK_TASKS);
-      setDataSource("MOCK");
+      console.error("Failed to fetch CAMO tasks dynamically:", err.message);
+      setError(`Unable to connect to live checklist sheet. Error: ${err.message}`);
+      setTasks([]);
     } finally {
       setLoading(false);
     }
@@ -189,7 +178,6 @@ export default function CamoChecklistPage() {
       const json = await response.json();
       if (json.success) {
         setSuccess("Checklist changes saved to Google Sheets successfully!");
-        setDataSource("LIVE");
         setTimeout(() => setSuccess(null), 5000);
       } else {
         throw new Error(json.error || "Failed to save tasks.");
@@ -261,8 +249,8 @@ export default function CamoChecklistPage() {
           <p>
             Posted guards task supervisor portal. 
             Source:{" "}
-            <span style={{ fontWeight: 700, color: dataSource === "LIVE" ? "var(--success)" : "var(--primary)" }}>
-              {dataSource === "LIVE" ? "Live Spreadsheet Checklist" : "Demo Mode / Fallback Checklist"}
+            <span style={{ fontWeight: 700, color: error ? "var(--primary)" : "var(--success)" }}>
+              {error ? "Offline" : "Live Spreadsheet Checklist"}
             </span>
           </p>
         </div>

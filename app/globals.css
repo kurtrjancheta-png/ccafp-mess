@@ -33,6 +33,7 @@
   --border-radius-sm: 8px;
   --border-radius-md: 14px;
   --border-radius-lg: 20px;
+  --sidebar-width: 280px;
 }
 
 body.dark {
@@ -163,7 +164,7 @@ a {
 
 /* Premium Sidebar */
 .sidebar {
-  width: 280px;
+  width: var(--sidebar-width);
   background-color: var(--card-bg);
   border-right: 1px solid var(--border-color);
   padding: 2rem 1.25rem;
@@ -172,7 +173,8 @@ a {
   position: fixed;
   height: 100vh;
   z-index: 100;
-  transition: var(--transition), background-color 0.4s ease, border-color 0.4s ease;
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), padding 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s ease, border-color 0.4s ease;
+  overflow: hidden;
 }
 
 .brand-section {
@@ -182,6 +184,96 @@ a {
   margin-bottom: 2.5rem;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border-color);
+  position: relative;
+}
+
+.pin-sidebar-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 4px;
+  border-radius: 4px;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.pin-sidebar-btn:hover {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+/* Collapsed Sidebar Overrides */
+.sidebar.collapsed {
+  padding: 2rem 0.5rem;
+  align-items: center;
+}
+
+.sidebar.collapsed .brand-text {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, width 0.2s ease;
+}
+
+.sidebar.collapsed .nav-item span {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, width 0.2s ease;
+}
+
+.sidebar.collapsed .sidebar-footer span {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, width 0.2s ease;
+}
+
+.sidebar.collapsed .copyright-text {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 10px;
+  transform: none !important;
+}
+
+.sidebar.collapsed .theme-toggle-btn {
+  justify-content: center;
+  padding: 8px;
+}
+
+.sidebar.collapsed .pin-sidebar-btn {
+  display: none;
+}
+
+.brand-text, .nav-item span, .sidebar-footer span, .copyright-text {
+  opacity: 1;
+  transition: opacity 0.3s ease 0.1s;
 }
 
 .brand-logo-placeholder {
@@ -325,12 +417,12 @@ a {
 /* Main Content Area */
 .main-content {
   flex-grow: 1;
-  margin-left: 280px;
+  margin-left: var(--sidebar-width);
   padding: 2.5rem 3.5rem;
   min-height: 100vh;
-  width: calc(100% - 280px);
+  width: calc(100% - var(--sidebar-width));
   animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transition: background-color 0.4s ease;
+  transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.4s ease;
 }
 
 /* Premium Header Card */

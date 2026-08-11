@@ -53,23 +53,11 @@ interface CompanyFormRow {
   showDietEdit: boolean;
 }
 
-// Fallback Mock data for Disseminations history
-const MOCK_DISSEMINATIONS: DisseminationRecord[] = [
-  { date: "2026-07-26", meal: "LUNCH", company: "ALFA", battalion: "1ST BATTALION", totalStrength: 105, present: 99, excused: 6, hc: 2, sickBay: 2, hospital: 1, duty: 1, leave: 0, otherExcused: 0, dietsTotal: 8, diets: { "NO PORK": 4, "NO FISH": 2, "NO SEAFOOD": 1, "NO BEEF": 1, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
-  { date: "2026-07-26", meal: "LUNCH", company: "BRAVO", battalion: "1ST BATTALION", totalStrength: 97, present: 93, excused: 4, hc: 1, sickBay: 1, hospital: 0, duty: 1, leave: 1, otherExcused: 0, dietsTotal: 6, diets: { "NO PORK": 3, "NO FISH": 1, "NO SEAFOOD": 2, "NO BEEF": 0, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
-  { date: "2026-07-26", meal: "LUNCH", company: "CHARLIE", battalion: "2ND BATTALION", totalStrength: 98, present: 95, excused: 3, hc: 1, sickBay: 1, hospital: 0, duty: 0, leave: 1, otherExcused: 0, dietsTotal: 5, diets: { "NO PORK": 2, "NO FISH": 2, "NO SEAFOOD": 1, "NO BEEF": 0, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
-  { date: "2026-07-26", meal: "LUNCH", company: "DELTA", battalion: "2ND BATTALION", totalStrength: 102, present: 97, excused: 5, hc: 2, sickBay: 1, hospital: 1, duty: 0, leave: 1, otherExcused: 0, dietsTotal: 9, diets: { "NO PORK": 5, "NO FISH": 1, "NO SEAFOOD": 2, "NO BEEF": 1, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
-  { date: "2026-07-26", meal: "LUNCH", company: "ECHO", battalion: "3RD BATTALION", totalStrength: 104, present: 100, excused: 4, hc: 1, sickBay: 1, hospital: 1, duty: 1, leave: 0, otherExcused: 0, dietsTotal: 7, diets: { "NO PORK": 3, "NO FISH": 2, "NO SEAFOOD": 1, "NO BEEF": 1, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
-  { date: "2026-07-26", meal: "LUNCH", company: "FOXTROT", battalion: "3RD BATTALION", totalStrength: 108, present: 105, excused: 3, hc: 1, sickBay: 0, hospital: 0, duty: 1, leave: 1, otherExcused: 0, dietsTotal: 10, diets: { "NO PORK": 5, "NO FISH": 3, "NO SEAFOOD": 2, "NO BEEF": 0, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
-  { date: "2026-07-26", meal: "LUNCH", company: "GOLF", battalion: "4TH BATTALION", totalStrength: 95, present: 92, excused: 3, hc: 1, sickBay: 1, hospital: 0, duty: 0, leave: 1, otherExcused: 0, dietsTotal: 4, diets: { "NO PORK": 1, "NO FISH": 1, "NO SEAFOOD": 1, "NO BEEF": 1, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" },
-  { date: "2026-07-26", meal: "LUNCH", company: "HAWK", battalion: "4TH BATTALION", totalStrength: 100, present: 96, excused: 4, hc: 2, sickBay: 0, hospital: 1, duty: 1, leave: 0, otherExcused: 0, dietsTotal: 6, diets: { "NO PORK": 3, "NO FISH": 1, "NO SEAFOOD": 1, "NO BEEF": 1, "NO EGG": 0, "NO CHICKEN": 0 }, timestamp: "2026-07-26 11:30:00" }
-];
-
 export default function DisseminationsPage() {
   const { user } = useAuth();
   const isAuthorized = user && (user.role === "RMESSO" || user.role === "MESS_OFFICER");
 
-  const [records, setRecords] = useState<DisseminationRecord[]>(MOCK_DISSEMINATIONS);
+  const [records, setRecords] = useState<DisseminationRecord[]>([]);
   const [cadets, setCadets] = useState<Cadet[]>([]);
   const [dietColumns, setDietColumns] = useState<string[]>([
     "NO FISH", "NO PORK", "NO SEAFOOD", "NO EGG", "NO CHICKEN", "NO BLOOD", 
@@ -81,7 +69,6 @@ export default function DisseminationsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [recordSuccess, setRecordSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<"MOCK" | "LIVE">("MOCK");
 
   // View States
   const [selectedDate, setSelectedDate] = useState<string>("2026-07-26");
@@ -325,10 +312,8 @@ export default function DisseminationsPage() {
 
           if (parsedRecords.length > 0) {
             setRecords(parsedRecords);
-            setDataSource("LIVE");
           } else {
-            setRecords(MOCK_DISSEMINATIONS);
-            setDataSource("MOCK");
+            setRecords([]);
           }
         } else {
           throw new Error(json.error || "Google Apps Script API returned an error response.");
@@ -339,8 +324,7 @@ export default function DisseminationsPage() {
         const disRows = parseCSV(disCsv);
 
         if (disRows.length < 2) {
-          setRecords(MOCK_DISSEMINATIONS);
-          setDataSource("MOCK");
+          setRecords([]);
         } else {
           const headers = disRows[0].map((h) => h.trim());
           
@@ -400,18 +384,15 @@ export default function DisseminationsPage() {
 
           if (parsedRecords.length > 0) {
             setRecords(parsedRecords);
-            setDataSource("LIVE");
           } else {
-            setRecords(MOCK_DISSEMINATIONS);
-            setDataSource("MOCK");
+            setRecords([]);
           }
         }
       }
     } catch (err: any) {
-      console.warn("Spreadsheet fetch failed. Falling back to mock dataset:", err.message);
-      setError(`Could not connect to live Google Sheet. Loaded demo mock dataset. Error: ${err.message}`);
-      setRecords(MOCK_DISSEMINATIONS);
-      setDataSource("MOCK");
+      console.error("Spreadsheet fetch failed:", err.message);
+      setError(`Could not connect to live Google Sheet. Error: ${err.message}`);
+      setRecords([]);
     } finally {
       setLoading(false);
     }
@@ -1073,8 +1054,8 @@ export default function DisseminationsPage() {
               <p>
                 Generated summaries of cadet messing strength, excused lists, and special diets.
                 Connection:{" "}
-                <span style={{ fontWeight: 700, color: dataSource === "LIVE" ? "var(--success)" : "var(--primary)" }}>
-                  {dataSource === "LIVE" ? "Connected to Google Sheet" : "Demo Mode / Fallback Logs"}
+                <span style={{ fontWeight: 700, color: error ? "var(--primary)" : "var(--success)" }}>
+                  {error ? "Offline" : "Connected to Google Sheet"}
                 </span>
               </p>
             </div>
@@ -1230,12 +1211,6 @@ export default function DisseminationsPage() {
                       Open Google Sheet to Record
                     </a>
                   )}
-                  <button className="btn btn-outline" onClick={() => {
-                    const baseMock = MOCK_DISSEMINATIONS.map(m => ({ ...m, date: selectedDate, meal: selectedMeal }));
-                    setRecords([...records, ...baseMock]);
-                  }}>
-                    Generate Demo Mockup
-                  </button>
                 </div>
               )}
             </div>

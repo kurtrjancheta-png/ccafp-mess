@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
@@ -8,6 +9,12 @@ import { useAuth } from "../context/AuthContext";
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, login, logout, error: authError } = useAuth();
+  
+  // Custom States for Collapsible & Auto-collapse behaviors
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const timerRef = useRef<any>(null);
+
   const [isDark, setIsDark] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   
@@ -18,9 +25,53 @@ export default function Sidebar() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const startTimer = () => {
+    clearTimer();
+    timerRef.current = setTimeout(() => {
+      if (!isPinned) {
+        setIsCollapsed(true);
+      }
+    }, 10000); // 10 seconds
+  };
+
+  // Expansion and hover events
+  const handleMouseEnter = () => {
+    clearTimer();
+    setIsCollapsed(false); // Expand on hover
+  };
+
+  const handleMouseLeave = () => {
+    if (!isPinned) {
+      startTimer(); // Start 10s collapse timer when hover leaves
+    }
+  };
+
+  const togglePin = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextPinned = !isPinned;
+    setIsPinned(nextPinned);
+    localStorage.setItem("sidebar-pinned", nextPinned ? "true" : "false");
+    
+    if (nextPinned) {
+      clearTimer();
+      setIsCollapsed(false);
+    } else {
+      startTimer();
+    }
+  };
+
+  // Mount initialization
   useEffect(() => {
     setIsMounted(true);
-    // Check local storage or document class on mount
+    
+    // Theme setup
     const savedTheme = localStorage.getItem("theme");
     const hasDarkClass = document.body.classList.contains("dark");
     if (savedTheme === "dark" || (!savedTheme && hasDarkClass)) {
@@ -30,7 +81,28 @@ export default function Sidebar() {
       setIsDark(false);
       document.body.classList.remove("dark");
     }
+
+    // Pin setup
+    const savedPin = localStorage.getItem("sidebar-pinned");
+    if (savedPin === "true") {
+      setIsPinned(true);
+      setIsCollapsed(false);
+    } else {
+      // Auto-collapse 10 seconds after page load
+      timerRef.current = setTimeout(() => {
+        setIsCollapsed(true);
+      }, 10000);
+    }
+
+    return () => clearTimer();
   }, []);
+
+  // Update dynamic CSS variable
+  useEffect(() => {
+    if (!isMounted) return;
+    const width = isCollapsed ? "80px" : "280px";
+    document.documentElement.style.setProperty("--sidebar-width", width);
+  }, [isCollapsed, isMounted]);
 
   const toggleTheme = () => {
     const newDark = !isDark;
@@ -64,7 +136,6 @@ export default function Sidebar() {
   };
 
   if (!isMounted) {
-    // Return placeholder markup to match SSR before hydration
     return (
       <aside className="sidebar">
         <div className="brand-section">
@@ -79,7 +150,6 @@ export default function Sidebar() {
     );
   }
 
-  // Base navigation items visible to everyone
   const navItems = [
     {
       href: "/",
@@ -137,14 +207,15 @@ export default function Sidebar() {
     },
   ];
 
-  // Dynamic route permissions: CAMO checklist appears ONLY when logged in as CAMO or RMESSO
   const isCamoChecklistVisible = user && (user.role === "CAMO" || user.role === "RMESSO");
-
-  // Dynamic sheet redirect button appears ONLY when logged in as a Mess Officer (RMESSO, MESS_OFFICER)
   const isRedirectButtonVisible = user && (user.role === "RMESSO" || user.role === "MESS_OFFICER");
 
   return (
-    <aside className="sidebar">
+    <aside 
+      className={`sidebar ${isCollapsed ? "collapsed" : ""}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Brand Section */}
       <div className="brand-section">
         <div className="brand-logo-placeholder">CM</div>
@@ -152,6 +223,32 @@ export default function Sidebar() {
           <h1>CCAFP Mess</h1>
           <span>Cadet Disposition</span>
         </div>
+        
+        {/* Toggle Pin/Lock Button */}
+        <button 
+          className="pin-sidebar-btn" 
+          onClick={togglePin}
+          title={isPinned ? "Unpin Sidebar (Auto-collapse enabled)" : "Pin Sidebar (Keep expanded)"}
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            style={{ 
+              width: "14px", 
+              height: "14px", 
+              transform: isPinned ? "rotate(45deg)" : "none", 
+              transition: "transform 0.2s ease" 
+            }}
+          >
+            <line x1="12" y1="17" x2="12" y2="22"></line>
+            <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.25V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.25c0 .4-.12.8-.35 1.12l-2.78 3.5a2 2 0 0 0-.44 1.24Z"></path>
+          </svg>
+        </button>
       </div>
 
       {/* Nav Menu */}
@@ -222,7 +319,7 @@ export default function Sidebar() {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: "12px", height: "12px", marginRight: "4px" }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Log Out
+              <span>Log Out</span>
             </button>
           </div>
         ) : (
@@ -234,7 +331,7 @@ export default function Sidebar() {
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: "12px", height: "12px", marginRight: "4px" }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            Log In as Admin
+            <span>Log In as Admin</span>
           </button>
         )}
 
@@ -264,7 +361,7 @@ export default function Sidebar() {
       </div>
 
       {/* Premium Login Modal Overlay */}
-      {showLogin && (
+      {showLogin && isMounted && createPortal(
         <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
           <div 
             className="modal-content" 
@@ -362,7 +459,8 @@ export default function Sidebar() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </aside>
   );
