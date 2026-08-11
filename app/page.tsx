@@ -603,7 +603,7 @@ export default function DashboardPage() {
         "<style>" +
         "@media print { @page { size: landscape; margin: 6mm 10mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }" +
         "body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }" +
-        ".page-container { page-break-after: always; padding: 10px; box-sizing: border-box; height: 98vh; display: flex; flex-direction: column; }" +
+        ".page-container { page-break-after: always; padding: 5px; box-sizing: border-box; }" +
         ".page-container:last-child { page-break-after: avoid; }" +
         ".print-header { text-align: center; line-height: 1.2; margin-bottom: 4px; }" +
         ".header-title-1 { font-size: 11pt; font-weight: bold; text-transform: uppercase; }" +
@@ -611,23 +611,23 @@ export default function DashboardPage() {
         ".header-title-3 { font-size: 8.5pt; margin-top: 1px; }" +
         ".header-title-4 { font-size: 8.5pt; margin-top: 1px; }" +
         ".print-datetime { text-align: center; font-size: 9pt; font-weight: bold; margin-bottom: 8px; }" +
-        ".companies-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; min-height: 0; }" +
-        ".company-card { border: 1.5px solid #666; border-radius: 6px; padding: 6px 10px; background-color: #fff; display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; }" +
-        ".company-name-banner { font-size: 9pt; font-weight: bold; background-color: #f2f2f2; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; border-left: 4px solid #b6d7a8; }" +
-        ".diets-flex-container { display: flex; flex-wrap: wrap; gap: 6px; flex-grow: 1; align-content: flex-start; min-height: 0; overflow: hidden; }" +
-        ".diet-column { flex: 1 1 110px; border: 1px solid #ccc; border-radius: 4px; background-color: #fafafa; padding: 4px; display: flex; flex-direction: column; gap: 3px; min-height: 0; }" +
-        ".diet-column-header { font-size: 7pt; font-weight: bold; background-color: #b6d7a8 !important; color: #000; padding: 2px 4px; border-radius: 3px; text-align: center; text-transform: uppercase; }" +
-        ".cadet-list { list-style: none; padding: 0; margin: 0; font-size: 7pt; overflow-y: auto; }" +
-        ".cadet-list li { padding: 1.5px 2px; border-bottom: 1px solid #eee; }" +
+        ".companies-wrapper { display: flex; flex-direction: column; gap: 10px; }" +
+        ".company-card { border: 1.5px solid #666; border-radius: 6px; padding: 8px 12px; background-color: #fff; display: flex; flex-direction: column; gap: 6px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".company-name-banner { font-size: 9.5pt; font-weight: bold; background-color: #f2f2f2; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; border-left: 4px solid #b6d7a8; }" +
+        ".diets-flex-container { display: flex; flex-wrap: wrap; gap: 8px; }" +
+        ".diet-column { flex: 1 1 110px; max-width: 180px; border: 1px solid #ccc; border-radius: 4px; background-color: #fafafa; padding: 4px; display: flex; flex-direction: column; gap: 3px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".diet-column-header { font-size: 7.5pt; font-weight: bold; background-color: #b6d7a8 !important; color: #000; padding: 2.5px 4px; border-radius: 3px; text-align: center; text-transform: uppercase; }" +
+        ".cadet-list { list-style: none; padding: 0; margin: 0; font-size: 7.5pt; }" +
+        ".cadet-list li { padding: 2px 3px; border-bottom: 1px solid #eee; }" +
         ".cadet-list li:last-child { border-bottom: none; }" +
         ".female-cadet { color: #d93025 !important; font-weight: bold; }" +
-        ".company-totals-section { border-top: 1px dashed #999; padding-top: 3px; display: flex; flex-direction: column; gap: 2px; }" +
-        ".company-total-row { display: flex; font-size: 6.5pt; background-color: #f9f9f9 !important; padding: 1.5px 4px; border-radius: 3px; border: 1px solid #ddd; }" +
+        ".company-totals-section { border-top: 1px dashed #999; padding-top: 4px; display: flex; flex-direction: column; gap: 2px; }" +
+        ".company-total-row { display: flex; font-size: 7pt; background-color: #f9f9f9 !important; padding: 2px 4px; border-radius: 3px; border: 1px solid #ddd; page-break-inside: avoid; break-inside: avoid; }" +
         ".total-row-label { font-weight: bold; width: 120px; min-width: 120px; color: #000; text-transform: uppercase; }" +
         ".total-row-values { flex-grow: 1; color: #333; }" +
-        ".overall-summary-card { border: 2px solid #333; border-radius: 6px; padding: 6px 10px; background-color: #fff; margin-top: 4px; }" +
-        ".overall-title { font-size: 8.5pt; font-weight: bold; background-color: #333 !important; color: #fff; padding: 3px 6px; border-radius: 4px; text-align: center; margin-bottom: 4px; }" +
-        ".overall-row { display: flex; font-size: 7pt; background-color: #f5f5f5 !important; padding: 2.5px 6px; border-radius: 3px; border: 1px solid #ddd; margin-bottom: 2px; }" +
+        ".overall-summary-card { border: 2px solid #333; border-radius: 6px; padding: 8px 12px; background-color: #fff; margin-top: 10px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".overall-title { font-size: 9pt; font-weight: bold; background-color: #333 !important; color: #fff; padding: 3px 6px; border-radius: 4px; text-align: center; margin-bottom: 5px; }" +
+        ".overall-row { display: flex; font-size: 7.5pt; background-color: #f5f5f5 !important; padding: 3px 6px; border-radius: 3px; border: 1px solid #ddd; margin-bottom: 3px; page-break-inside: avoid; break-inside: avoid; }" +
         ".overall-row:last-child { margin-bottom: 0; }" +
         ".overall-row-label { font-weight: bold; width: 130px; min-width: 130px; color: #000; text-transform: uppercase; }" +
         ".overall-row-values { flex-grow: 1; color: #111; }" +
