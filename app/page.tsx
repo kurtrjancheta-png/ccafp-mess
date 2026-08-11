@@ -562,31 +562,31 @@ export default function DashboardPage() {
         "body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }" +
         ".page-container { page-break-after: always; padding: 5px; box-sizing: border-box; }" +
         ".page-container:last-child { page-break-after: avoid; }" +
-        ".print-header { text-align: center; line-height: 1.2; margin-bottom: 4px; }" +
-        ".header-title-1 { font-size: 11pt; font-weight: bold; text-transform: uppercase; }" +
-        ".header-title-2 { font-size: 10pt; font-weight: bold; text-transform: uppercase; margin-top: 1px; }" +
-        ".header-title-3 { font-size: 8.5pt; margin-top: 1px; }" +
-        ".header-title-4 { font-size: 8.5pt; margin-top: 1px; }" +
-        ".print-datetime { text-align: center; font-size: 9pt; font-weight: bold; margin-bottom: 8px; }" +
-        ".companies-wrapper { display: flex; gap: 12px; width: 100%; align-items: stretch; }" +
-        ".company-card { flex: 1; border: 1.5px solid #666; border-radius: 6px; padding: 8px 12px; background-color: #fff; display: flex; flex-direction: column; gap: 6px; page-break-inside: avoid; break-inside: avoid; }" +
-        ".company-name-banner { font-size: 9.5pt; font-weight: bold; background-color: #f2f2f2; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; border-left: 4px solid #b6d7a8; }" +
-        ".diets-flex-container { display: flex; flex-wrap: wrap; gap: 8px; }" +
-        ".diet-column { flex: 1 1 110px; max-width: 180px; border: 1px solid #ccc; border-radius: 4px; background-color: #fafafa; padding: 4px; display: flex; flex-direction: column; gap: 3px; page-break-inside: avoid; break-inside: avoid; }" +
-        ".diet-column-header { font-size: 7.5pt; font-weight: bold; background-color: #b6d7a8 !important; color: #000; padding: 2.5px 4px; border-radius: 3px; text-align: center; text-transform: uppercase; }" +
-        ".cadet-list { list-style: none; padding: 0; margin: 0; font-size: 7.5pt; }" +
-        ".cadet-list li { padding: 2px 3px; border-bottom: 1px solid #eee; }" +
+        ".print-header { text-align: center; line-height: 1.1; margin-bottom: 2px; }" +
+        ".header-title-1 { font-size: 10pt; font-weight: bold; text-transform: uppercase; }" +
+        ".header-title-2 { font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-top: 1px; }" +
+        ".header-title-3 { font-size: 8pt; margin-top: 1px; }" +
+        ".header-title-4 { font-size: 8pt; margin-top: 1px; }" +
+        ".print-datetime { text-align: center; font-size: 8pt; font-weight: bold; margin-bottom: 4px; }" +
+        ".companies-wrapper { display: flex; gap: 10px; width: 100%; align-items: stretch; }" +
+        ".company-card { flex: 1; border: 1.5px solid #666; border-radius: 4px; padding: 6px 10px; background-color: #fff; display: flex; flex-direction: column; gap: 4px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".company-name-banner { font-size: 8.5pt; font-weight: bold; background-color: #f2f2f2; padding: 2px 4px; border-radius: 3px; text-transform: uppercase; border-left: 3px solid #b6d7a8; }" +
+        ".diets-flex-container { display: flex; flex-wrap: wrap; gap: 6px; }" +
+        ".diet-column { flex: 1 1 95px; max-width: 140px; border: 1px solid #ccc; border-radius: 3px; background-color: #fafafa; padding: 3px; display: flex; flex-direction: column; gap: 2px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".diet-column-header { font-size: 7pt; font-weight: bold; background-color: #b6d7a8 !important; color: #000; padding: 2px 3px; border-radius: 2px; text-align: center; text-transform: uppercase; }" +
+        ".cadet-list { list-style: none; padding: 0; margin: 0; font-size: 7pt; }" +
+        ".cadet-list li { padding: 1.5px 2px; border-bottom: 1px solid #eee; }" +
         ".cadet-list li:last-child { border-bottom: none; }" +
         ".female-cadet { color: #d93025 !important; font-weight: bold; }" +
-        ".company-totals-section { border-top: 1px dashed #999; padding-top: 4px; display: flex; flex-direction: column; gap: 2px; }" +
-        ".company-total-row { display: flex; font-size: 7pt; background-color: #f9f9f9 !important; padding: 2px 4px; border-radius: 3px; border: 1px solid #ddd; page-break-inside: avoid; break-inside: avoid; }" +
-        ".total-row-label { font-weight: bold; width: 120px; min-width: 120px; color: #000; text-transform: uppercase; }" +
+        ".company-totals-section { border-top: 1px dashed #999; padding-top: 3px; display: flex; flex-direction: column; gap: 2px; }" +
+        ".company-total-row { display: flex; font-size: 6.5pt; background-color: #f9f9f9 !important; padding: 1.5px 3px; border-radius: 2px; border: 1px solid #ddd; page-break-inside: avoid; break-inside: avoid; }" +
+        ".total-row-label { font-weight: bold; width: 100px; min-width: 100px; color: #000; text-transform: uppercase; }" +
         ".total-row-values { flex-grow: 1; color: #333; }" +
-        ".document-title-strip { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 12px; }" +
-        ".doc-title { font-size: 13pt; font-weight: 800; color: #000; letter-spacing: 0.5px; text-transform: uppercase; }" +
-        ".batt-title { font-size: 11pt; font-weight: 700; color: #444; text-transform: uppercase; }" +
+        ".document-title-strip { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 8px; }" +
+        ".doc-title { font-size: 11pt; font-weight: 800; color: #000; letter-spacing: 0.5px; text-transform: uppercase; }" +
+        ".batt-title { font-size: 9.5pt; font-weight: 700; color: #444; text-transform: uppercase; }" +
         ".summary-cards-wrapper { display: flex; gap: 8px; width: 100%; align-items: stretch; }" +
-        ".summary-card { flex: 1; border: 1.5px solid #666; border-radius: 6px; padding: 6px; background-color: #fff; display: flex; flex-direction: column; gap: 5px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".summary-card { flex: 1; border: 1.5px solid #666; border-radius: 4px; padding: 6px; background-color: #fff; display: flex; flex-direction: column; gap: 4px; page-break-inside: avoid; break-inside: avoid; }" +
         ".summary-card:last-child { border-color: #000; border-width: 2.5px; background-color: #fcfcfc; }" +
         ".summary-card-title { font-size: 7.5pt; font-weight: bold; background-color: #f2f2f2; padding: 3px 4px; border-radius: 4px; text-align: center; border-bottom: 3.5px solid #b6d7a8; text-transform: uppercase; line-height: 1.2; }" +
         ".summary-card:last-child .summary-card-title { background-color: #333; color: #fff; border-bottom-color: #d93025; }" +
