@@ -412,63 +412,79 @@ export default function DashboardPage() {
         return "";
       };
 
+      // Group companies into pairs (2 per page)
+      const pairs: string[][] = [];
+      for (let i = 0; i < COMPANY_ORDER.length; i += 2) {
+        pairs.push(COMPANY_ORDER.slice(i, i + 2));
+      }
+
       let pagesHtml = "";
 
-      COMPANY_ORDER.forEach((company) => {
-        const battalionName = getBattalionName(company);
-        const companyData = companyDietsData[company] || {};
-        
-        // Collect columns with data (cadets count > 0)
-        interface DietColumnData {
-          name: string;
-          total: number;
-          cadets: CadetDietData[];
-        }
-        const activeDiets: DietColumnData[] = [];
-        dietNames.forEach(diet => {
-          const cadets = companyData[diet] || [];
-          if (cadets.length > 0) {
-            activeDiets.push({
-              name: diet,
-              total: cadets.length,
-              cadets: cadets
-            });
+      pairs.forEach((pair) => {
+        let pairCompaniesHtml = "";
+        const battalionName = getBattalionName(pair[0] || "");
+
+        pair.forEach(company => {
+          const companyData = companyDietsData[company] || {};
+          
+          // Collect columns with data (cadets count > 0)
+          interface DietColumnData {
+            name: string;
+            total: number;
+            cadets: CadetDietData[];
           }
-        });
-
-        // Build columns layout
-        let dietsHtml = "";
-        activeDiets.forEach(diet => {
-          let cadetItemsHtml = "";
-          diet.cadets.forEach(cadet => {
-            const className = cadet.isFemale ? 'class="female-cadet"' : "";
-            cadetItemsHtml += "<li " + className + ">" + cadet.name + "</li>";
+          const activeDiets: DietColumnData[] = [];
+          dietNames.forEach(diet => {
+            const cadets = companyData[diet] || [];
+            if (cadets.length > 0) {
+              activeDiets.push({
+                name: diet,
+                total: cadets.length,
+                cadets: cadets
+              });
+            }
           });
 
-          dietsHtml += '<div class="diet-column">' +
-            '<div class="diet-column-header">' + diet.name + " (" + diet.total + ")</div>" +
-            '<ul class="cadet-list">' + cadetItemsHtml + "</ul>" +
-            "</div>";
-        });
-
-        // Build totals row
-        let totalsSummaryHtml = "";
-        if (activeDiets.length > 0) {
-          const totalsList: string[] = [];
+          // Build columns layout
+          let dietsHtml = "";
           activeDiets.forEach(diet => {
-            totalsList.push("<strong>" + diet.name + "</strong>: " + diet.total);
+            let cadetItemsHtml = "";
+            diet.cadets.forEach(cadet => {
+              const className = cadet.isFemale ? 'class="female-cadet"' : "";
+              cadetItemsHtml += "<li " + className + ">" + cadet.name + "</li>";
+            });
+
+            dietsHtml += '<div class="diet-column">' +
+              '<div class="diet-column-header">' + diet.name + " (" + diet.total + ")</div>" +
+              '<ul class="cadet-list">' + cadetItemsHtml + "</ul>" +
+              "</div>";
           });
 
-          totalsSummaryHtml += '<div class="company-total-row">' +
-            '<div class="total-row-label">TOTAL</div>' +
-            '<div class="total-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
+          // Build totals row
+          let totalsSummaryHtml = "";
+          if (activeDiets.length > 0) {
+            const totalsList: string[] = [];
+            activeDiets.forEach(diet => {
+              totalsList.push("<strong>" + diet.name + "</strong>: " + diet.total);
+            });
+
+            totalsSummaryHtml += '<div class="company-total-row">' +
+              '<div class="total-row-label">TOTAL</div>' +
+              '<div class="total-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
+              "</div>";
+          } else {
+            totalsSummaryHtml += '<div class="company-total-row">' +
+              '<div class="total-row-label">TOTAL</div>' +
+              '<div class="total-row-values">No special diet requirements</div>' +
+              "</div>";
+          }
+
+          pairCompaniesHtml += '<div class="company-card company-' + company + '">' +
+            '<div class="company-name-banner">' + company + " COMPANY</div>" +
+            '<div class="diets-flex-container">' + dietsHtml + "</div>" +
+            '<div class="company-totals-section">' + totalsSummaryHtml + "</div>" +
             "</div>";
-        } else {
-          totalsSummaryHtml += '<div class="company-total-row">' +
-            '<div class="total-row-label">TOTAL</div>' +
-            '<div class="total-row-values">No special diet requirements</div>' +
-            "</div>";
-        }
+        });
 
         pagesHtml += '<div class="page-container">' +
           '<div class="document-title-strip">' +
@@ -476,11 +492,7 @@ export default function DashboardPage() {
           '<div class="batt-title">' + battalionName + "</div>" +
           "</div>" +
           
-          '<div class="company-card company-' + company + '">' +
-          '<div class="company-name-banner">' + company + " COMPANY</div>" +
-          '<div class="diets-flex-container">' + dietsHtml + "</div>" +
-          '<div class="company-totals-section">' + totalsSummaryHtml + "</div>" +
-          "</div>" +
+          '<div class="companies-wrapper">' + pairCompaniesHtml + "</div>" +
           "</div>";
       });
 
@@ -513,7 +525,7 @@ export default function DashboardPage() {
         });
         return '<div class="summary-card">' +
           '<div class="summary-card-title">' + title + '</div>' +
-          '<div class="summary-card-values">' + (itemsHtml || '<div style="font-size:7.5pt;color:#999;text-align:center;padding:10px 0;">None</div>') + '</div>' +
+          '<div class="summary-card-values">' + (itemsHtml || '<div style="font-size:5.8pt;color:#999;text-align:center;padding:10px 0;">None</div>') + '</div>' +
           '</div>';
       };
 
@@ -548,38 +560,38 @@ export default function DashboardPage() {
         "<style>" +
         "@media print { @page { size: A4 landscape; margin: 6mm 10mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }" +
         "body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }" +
-        ".page-container { page-break-after: always; break-after: page; page-break-inside: avoid; break-inside: avoid; padding: 5px; box-sizing: border-box; }" +
+        ".page-container { page-break-after: always; break-after: page; padding: 3px; box-sizing: border-box; }" +
         ".page-container:last-child { page-break-after: avoid; break-after: avoid; }" +
         ".print-header { text-align: center; line-height: 1.1; margin-bottom: 2px; }" +
-        ".header-title-1 { font-size: 8.5pt; font-weight: bold; text-transform: uppercase; }" +
-        ".header-title-2 { font-size: 7.5pt; font-weight: bold; text-transform: uppercase; margin-top: 1px; }" +
-        ".header-title-3 { font-size: 6.5pt; margin-top: 1px; }" +
-        ".header-title-4 { font-size: 6.5pt; margin-top: 1px; }" +
-        ".print-datetime { text-align: center; font-size: 6.5pt; font-weight: bold; margin-bottom: 4px; }" +
+        ".header-title-1 { font-size: 8pt; font-weight: bold; text-transform: uppercase; }" +
+        ".header-title-2 { font-size: 7pt; font-weight: bold; text-transform: uppercase; margin-top: 1px; }" +
+        ".header-title-3 { font-size: 6pt; margin-top: 1px; }" +
+        ".header-title-4 { font-size: 6pt; margin-top: 1px; }" +
+        ".print-datetime { text-align: center; font-size: 6pt; font-weight: bold; margin-bottom: 2px; }" +
         ".companies-wrapper { display: flex; gap: 8px; width: 100%; align-items: stretch; }" +
-        ".company-card { flex: 1; border: 1.5px solid #666; border-radius: 4px; padding: 4px 8px; background-color: #fff; display: flex; flex-direction: column; gap: 3px; page-break-inside: avoid; break-inside: avoid; }" +
-        ".company-name-banner { font-size: 7pt; font-weight: bold; background-color: #f2f2f2; padding: 2px 4px; border-radius: 3px; text-transform: uppercase; border-left: 3px solid #b6d7a8; }" +
-        ".diets-flex-container { display: flex; flex-wrap: wrap; gap: 5px; }" +
-        ".diet-column { flex: 1 1 80px; max-width: 115px; border: 1px solid #ccc; border-radius: 3px; background-color: #fafafa; padding: 2px; display: flex; flex-direction: column; gap: 1px; page-break-inside: avoid; break-inside: avoid; }" +
-        ".diet-column-header { font-size: 5.8pt; font-weight: bold; background-color: #b6d7a8 !important; color: #000; padding: 1.5px 2px; border-radius: 2px; text-align: center; text-transform: uppercase; }" +
-        ".cadet-list { list-style: none; padding: 0; margin: 0; font-size: 5.8pt; }" +
-        ".cadet-list li { padding: 1px 1.5px; border-bottom: 1px solid #eee; }" +
+        ".company-card { flex: 1; border: 1.2px solid #666; border-radius: 4px; padding: 3px 6px; background-color: #fff; display: flex; flex-direction: column; gap: 2.5px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".company-name-banner { font-size: 6.5pt; font-weight: bold; background-color: #f2f2f2; padding: 1.5px 3px; border-radius: 2px; text-transform: uppercase; border-left: 2.5px solid #b6d7a8; }" +
+        ".diets-flex-container { display: flex; flex-wrap: wrap; gap: 4px; }" +
+        ".diet-column { flex: 1 1 70px; max-width: 100px; border: 1px solid #ccc; border-radius: 3px; background-color: #fafafa; padding: 1.5px; display: flex; flex-direction: column; gap: 1px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".diet-column-header { font-size: 5.2pt; font-weight: bold; background-color: #b6d7a8 !important; color: #000; padding: 1px 1.5px; border-radius: 2px; text-align: center; text-transform: uppercase; }" +
+        ".cadet-list { list-style: none; padding: 0; margin: 0; font-size: 5.2pt; }" +
+        ".cadet-list li { padding: 0.8px 1.2px; border-bottom: 1px solid #eee; }" +
         ".cadet-list li:last-child { border-bottom: none; }" +
         ".female-cadet { color: #d93025 !important; font-weight: bold; }" +
-        ".company-totals-section { border-top: 1px dashed #999; padding-top: 2px; display: flex; flex-direction: column; gap: 1.5px; }" +
-        ".company-total-row { display: flex; font-size: 5.5pt; background-color: #f9f9f9 !important; padding: 1px 2px; border-radius: 2px; border: 1px solid #ddd; page-break-inside: avoid; break-inside: avoid; }" +
-        ".total-row-label { font-weight: bold; width: 80px; min-width: 80px; color: #000; text-transform: uppercase; }" +
+        ".company-totals-section { border-top: 1px dashed #999; padding-top: 2px; display: flex; flex-direction: column; gap: 1px; }" +
+        ".company-total-row { display: flex; font-size: 5.2pt; background-color: #f9f9f9 !important; padding: 0.8px 1.5px; border-radius: 2px; border: 1px solid #ddd; page-break-inside: avoid; break-inside: avoid; }" +
+        ".total-row-label { font-weight: bold; width: 60px; min-width: 60px; color: #000; text-transform: uppercase; }" +
         ".total-row-values { flex-grow: 1; color: #333; }" +
-        ".document-title-strip { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 6px; }" +
-        ".doc-title { font-size: 9pt; font-weight: 800; color: #000; letter-spacing: 0.5px; text-transform: uppercase; }" +
-        ".batt-title { font-size: 8pt; font-weight: 700; color: #444; text-transform: uppercase; }" +
+        ".document-title-strip { display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #000; padding-bottom: 1.5px; margin-bottom: 5px; }" +
+        ".doc-title { font-size: 8.5pt; font-weight: 800; color: #000; letter-spacing: 0.5px; text-transform: uppercase; }" +
+        ".batt-title { font-size: 7.5pt; font-weight: 700; color: #444; text-transform: uppercase; }" +
         ".summary-cards-wrapper { display: flex; gap: 8px; width: 100%; align-items: stretch; }" +
         ".summary-card { flex: 1; border: 1.5px solid #666; border-radius: 4px; padding: 6px; background-color: #fff; display: flex; flex-direction: column; gap: 4px; page-break-inside: avoid; break-inside: avoid; }" +
         ".summary-card:last-child { border-color: #000; border-width: 2.5px; background-color: #fcfcfc; }" +
         ".summary-card-title { font-size: 6.2pt; font-weight: bold; background-color: #f2f2f2; padding: 2px 3px; border-radius: 4px; text-align: center; border-bottom: 3.5px solid #b6d7a8; text-transform: uppercase; line-height: 1.2; }" +
         ".summary-card:last-child .summary-card-title { background-color: #333; color: #fff; border-bottom-color: #d93025; }" +
         ".summary-card-values { display: flex; flex-direction: column; gap: 3px; }" +
-        ".summary-item { display: flex; justify-content: space-between; font-size: 5.8pt; border-bottom: 1px solid #eee; padding-bottom: 1.2px; }" +
+        ".summary-item { display: flex; justify-content: space-between; font-size: 5.2pt; border-bottom: 1px solid #eee; padding-bottom: 1.2px; }" +
         ".summary-item:last-child { border-bottom: none; }" +
         ".summary-item-label { font-weight: 600; color: #444; text-transform: uppercase; }" +
         ".summary-item-val { font-weight: 700; color: #000; }" +
