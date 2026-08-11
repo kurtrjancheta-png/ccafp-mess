@@ -313,7 +313,7 @@ export default function DashboardPage() {
 
   const handlePrintSpecialDietReport = async () => {
     try {
-      // Fetch the report data directly from the formatted Google Sheet
+      // Fetch the report data directly from the formatted Google Sheet GID 1721294419
       const REPORT_URL = "https://docs.google.com/spreadsheets/d/14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ/export?format=csv&gid=1721294419";
       const response = await fetch(REPORT_URL);
       if (!response.ok) throw new Error("Failed to fetch report data");
@@ -357,7 +357,7 @@ export default function DashboardPage() {
         company: string;
         headerRows: string[][];
         dataRows: string[][];
-        totalRow: string[] | null;
+        totalRows: string[][];
         numCols: number;
       }
 
@@ -366,77 +366,95 @@ export default function DashboardPage() {
 
       for (let i = 0; i < nonEmptyRows.length; i++) {
         const row = nonEmptyRows[i];
-        const first = row[0].toUpperCase();
+        const first = row[0].toUpperCase().trim();
+        
         const isDietHdr = hasDietHeaders(row);
         const isCompany = COMPANY_NAMES.has(first);
-        const isTotal = first === "TOTAL";
-        const isBattTotal = first.includes("BATT") && first.includes("TOTAL");
-        const isOverall = first.includes("OVERALL") && first.includes("TOTAL");
+        const isTotal = first.includes("TOTAL") || first.includes("BATT") || first.includes("OVERALL");
+        const isLabelOnly = isCompany && row.slice(1).every(c => c.trim() === "");
 
-        // Skip battalion totals and overall totals
-        if (isBattTotal || isOverall) {
-          if (currentSection) { sections.push(currentSection); currentSection = null; }
+        // Check if this row starts/adds to header of a company section
+        if (isDietHdr) {
+          const shouldStartNew = !currentSection || currentSection.dataRows.length > 0 || currentSection.totalRows.length > 0;
+          if (shouldStartNew) {
+            if (currentSection) sections.push(currentSection);
+            
+            let sectionCompany = isCompany ? first : "";
+            if (!sectionCompany) {
+              for (let j = i + 1; j < nonEmptyRows.length && j <= i + 5; j++) {
+                const nextFirst = nonEmptyRows[j][0].toUpperCase().trim();
+                if (COMPANY_NAMES.has(nextFirst)) {
+                  sectionCompany = nextFirst;
+                  break;
+                }
+              }
+            }
+            currentSection = {
+              company: sectionCompany || "SPECIAL DIETS",
+              headerRows: [row],
+              dataRows: [],
+              totalRows: [],
+              numCols: 0
+            };
+          } else {
+            currentSection.headerRows.push(row);
+          }
           continue;
         }
 
-        if (isCompany && isDietHdr && first !== (currentSection?.company || "")) {
-          // Standard company header (e.g. ALFA, BRAVO, CHARLIE, DELTA, ECHO, HAWK)
-          if (currentSection) sections.push(currentSection);
-          currentSection = { company: first, headerRows: [row], dataRows: [], totalRow: null, numCols: 0 };
-        } else if (isDietHdr && !currentSection) {
-          // Diet-only header starting a new section (FOXTROT/GOLF style)
-          let compName = "";
-          for (let j = i + 1; j < nonEmptyRows.length && j <= i + 5; j++) {
-            const nf = nonEmptyRows[j][0].toUpperCase();
-            if (COMPANY_NAMES.has(nf)) { compName = nf; break; }
-            if (nf === "TOTAL" || nf.includes("BATT")) break;
-          }
-          currentSection = { company: compName, headerRows: [row], dataRows: [], totalRow: null, numCols: 0 };
-        } else if (isDietHdr && currentSection) {
-          // Additional header row within current section
-          if (currentSection.dataRows.length === 0) {
-            // Still in the header area, add as second header row
-            currentSection.headerRows.push(row);
-          } else {
-            // Data already exists, this header starts a new section
-            sections.push(currentSection);
-            let compName = "";
-            for (let j = i + 1; j < nonEmptyRows.length && j <= i + 5; j++) {
-              const nf = nonEmptyRows[j][0].toUpperCase();
-              if (COMPANY_NAMES.has(nf)) { compName = nf; break; }
-              if (nf === "TOTAL" || nf.includes("BATT")) break;
-            }
-            currentSection = { company: compName, headerRows: [row], dataRows: [], totalRow: null, numCols: 0 };
-          }
+        // If we don't have a section yet (e.g. at the very end for OVERALL TOTAL), create a dummy one
+        if (!currentSection) {
+          currentSection = {
+            company: "OVERALL TOTAL",
+            headerRows: [],
+            dataRows: [],
+            totalRows: [],
+            numCols: 0
+          };
+        }
+
+        // Classify the row inside the active section
+        if (isLabelOnly) {
+          // Skip company label rows (e.g. "FOXTROT" on its own row)
+          continue;
         } else if (isTotal) {
-          if (currentSection) {
-            currentSection.totalRow = row;
-            sections.push(currentSection);
-            currentSection = null;
-          }
+          currentSection.totalRows.push(row);
         } else {
-          // Data row
-          if (currentSection) {
-            if (isCompany && !currentSection.company) {
-              currentSection.company = first;
-            }
-            currentSection.dataRows.push(row);
+          // Data row!
+          // If the first cell contains a company name (GOLF style), clear it
+          const cleanRow = [...row];
+          if (isCompany) {
+            cleanRow[0] = "";
           }
+          currentSection.dataRows.push(cleanRow);
         }
       }
-      if (currentSection) sections.push(currentSection);
+      
+      if (currentSection) {
+        sections.push(currentSection);
+      }
 
       // Detect unlabeled total rows (numeric-only last rows without TOTAL label, e.g. ECHO)
       for (const section of sections) {
-        if (!section.totalRow && section.dataRows.length > 0) {
+        if (section.totalRows.length === 0 && section.dataRows.length > 0) {
           const lastRow = section.dataRows[section.dataRows.length - 1];
           if (!lastRow[0]) {
             const filled = lastRow.slice(1).filter(c => c !== "");
             const allNumeric = filled.length > 0 && filled.every(c => /^\d+$/.test(c));
             if (allNumeric) {
-              section.totalRow = section.dataRows.pop()!;
-              section.totalRow[0] = "TOTAL";
+              const popped = section.dataRows.pop()!;
+              popped[0] = "TOTAL";
+              section.totalRows.push(popped);
             }
+          }
+        }
+      }
+
+      // Ensure first cell of header rows contains the company name
+      for (const section of sections) {
+        for (let h = 0; h < section.headerRows.length; h++) {
+          if (!section.headerRows[h][0] || section.headerRows[h][0].trim() === "") {
+            section.headerRows[h][0] = section.company;
           }
         }
       }
@@ -444,11 +462,13 @@ export default function DashboardPage() {
       // Calculate active column count per section
       for (const section of sections) {
         let mc = 0;
-        const allSectionRows = [...section.headerRows, ...section.dataRows];
-        if (section.totalRow) allSectionRows.push(section.totalRow);
+        const allSectionRows = [...section.headerRows, ...section.dataRows, ...section.totalRows];
         for (const r of allSectionRows) {
           for (let j = r.length - 1; j >= 0; j--) {
-            if (r[j]) { mc = Math.max(mc, j + 1); break; }
+            if (r[j] && r[j].trim() !== "") {
+              mc = Math.max(mc, j + 1);
+              break;
+            }
           }
         }
         section.numCols = mc;
@@ -497,12 +517,12 @@ export default function DashboardPage() {
           tablesHtml += "</tr>";
         }
 
-        // Total row
-        if (section.totalRow) {
+        // Total rows
+        for (const tRow of section.totalRows) {
           tablesHtml += '<tr class="total-row">';
           for (let j = 0; j < nc; j++) {
-            const cell = section.totalRow[j] || "";
-            const cls = j === 0 ? "total-label" : "total-val";
+            const cell = tRow[j] || "";
+            const cls = j === 0 || (j === 1 && !tRow[0]) ? "total-label" : "total-val";
             tablesHtml += '<td class="' + cls + '">' + cell + "</td>";
           }
           tablesHtml += "</tr>";
