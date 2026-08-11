@@ -396,7 +396,7 @@ export default function DashboardPage() {
               totalRows: [],
               numCols: 0
             };
-          } else {
+          } else if (currentSection) {
             currentSection.headerRows.push(row);
           }
           continue;
