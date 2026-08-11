@@ -863,18 +863,26 @@ function formatWeeklyMenuSheet(sheet) {
              
   sheet.setRowHeight(1, 28);
   
-  // Column A labels (bold, right-aligned or left-aligned)
-  var labelRange = sheet.getRange(2, 1, lastRow - 1, 1);
-  labelRange.setFontWeight("bold")
-            .setHorizontalAlignment("left")
-            .setBackground("#F3F4F6");
-            
   // Apply light borders
   var dataRange = sheet.getRange(1, 1, lastRow, lastCol);
   dataRange.setFontFamily("Arial")
             .setFontSize(10)
             .setVerticalAlignment("middle")
             .setBorder(true, true, true, true, true, true, "#E5E7EB", SpreadsheetApp.BorderStyle.SOLID);
+            
+  // Apply styles only if there are data rows (lastRow > 1)
+  if (lastRow > 1) {
+    // Column A labels (bold, right-aligned or left-aligned)
+    var labelRange = sheet.getRange(2, 1, lastRow - 1, 1);
+    labelRange.setFontWeight("bold")
+              .setHorizontalAlignment("left")
+              .setBackground("#F3F4F6");
+              
+    // Center day columns B-H
+    if (lastCol > 1) {
+      sheet.getRange(2, 2, lastRow - 1, lastCol - 1).setHorizontalAlignment("center");
+    }
+  }
             
   // Highlight Section Headers (MORNING MESS, NOON MESS, EVENING MESS, PM SNACK)
   var sectionRows = [2, 10, 18, 26];
@@ -886,11 +894,6 @@ function formatWeeklyMenuSheet(sheet) {
               .setFontColor("#C23E53");
     }
   });
-  
-  // Center day columns B-H
-  if (lastCol > 1) {
-    sheet.getRange(2, 2, lastRow - 1, lastCol - 1).setHorizontalAlignment("center");
-  }
   
   // Auto-resize columns
   for (var col = 1; col <= lastCol; col++) {
@@ -925,17 +928,20 @@ function formatViandsSheet(sheet) {
              
   sheet.setRowHeight(1, 28);
   
-  // Format data rows
-  var dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
-  dataRange.setFontFamily("Arial")
-            .setFontSize(10)
-            .setVerticalAlignment("middle")
-            .setBorder(true, true, true, true, true, true, "#E5E7EB", SpreadsheetApp.BorderStyle.SOLID);
-            
-  // Alignments: Viand name left-aligned, other cells centered
-  sheet.getRange(2, 1, lastRow - 1, 1).setHorizontalAlignment("left").setFontWeight("bold");
-  if (lastCol > 1) {
-    sheet.getRange(2, 2, lastRow - 1, lastCol - 1).setHorizontalAlignment("center");
+  // Apply fonts and borders to the whole sheet
+  var fullRange = sheet.getRange(1, 1, lastRow, lastCol);
+  fullRange.setFontFamily("Arial")
+           .setFontSize(10)
+           .setVerticalAlignment("middle")
+           .setBorder(true, true, true, true, true, true, "#E5E7EB", SpreadsheetApp.BorderStyle.SOLID);
+  
+  // Apply data row styling only if there are data rows (lastRow > 1)
+  if (lastRow > 1) {
+    // Alignments: Viand name left-aligned, other cells centered
+    sheet.getRange(2, 1, lastRow - 1, 1).setHorizontalAlignment("left").setFontWeight("bold");
+    if (lastCol > 1) {
+      sheet.getRange(2, 2, lastRow - 1, lastCol - 1).setHorizontalAlignment("center");
+    }
   }
   
   // Auto-resize columns

@@ -96,7 +96,8 @@ export default function MenuPage() {
   const [viandsDb, setViandsDb] = useState<ViandRecord[]>([]);
   const [activeDay, setActiveDay] = useState("Monday");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   
   // Edit Modal States
   const [showEditModal, setShowEditModal] = useState(false);
@@ -172,7 +173,8 @@ export default function MenuPage() {
 
   const fetchMenuAndViands = async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
+    setSaveError(null);
     const sheetId = process.env.NEXT_PUBLIC_SPREADSHEET_ID || "14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ";
     const menuGid = "143586769";
     const viandsGid = "166151731";
@@ -265,7 +267,7 @@ export default function MenuPage() {
       }
     } catch (err: any) {
       console.warn("Failed to load live menu details, using local template:", err.message);
-      setError("Displaying offline menu card. Google Sheets dynamic sync is currently offline.");
+      setLoadError("Displaying offline menu card. Google Sheets dynamic sync is currently offline.");
       setMenu(DEFAULT_WEEKLY_MENU);
       setEditMenuState(DEFAULT_WEEKLY_MENU);
     } finally {
@@ -553,7 +555,7 @@ export default function MenuPage() {
     }
 
     setSaving(true);
-    setError(null);
+    setSaveError(null);
     setSuccessMsg(null);
 
     const rows = constructMenuCSVRows(editMenuState);
@@ -588,7 +590,7 @@ export default function MenuPage() {
       }
     } catch (err: any) {
       console.error("Failed saving weekly menu details:", err);
-      setError(`Failed to save weekly menu: ${err.message}`);
+      setSaveError(`Failed to save weekly menu: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -981,8 +983,8 @@ export default function MenuPage() {
           <p>
             Dynamic meal plans, nutrition database, and dietary warning disclosures for the Cadet Corps.
             Source:{" "}
-            <span style={{ fontWeight: 700, color: error ? "var(--primary)" : "var(--success)" }}>
-              {error ? "Offline Local" : "Live Google Sheets"}
+            <span style={{ fontWeight: 700, color: loadError ? "var(--primary)" : "var(--success)" }}>
+              {loadError ? "Offline Local" : "Live Google Sheets"}
             </span>
           </p>
         </div>
@@ -1015,10 +1017,17 @@ export default function MenuPage() {
         </div>
       )}
 
-      {/* Notice Banner */}
-      {error && (
+      {/* Load Error Banner */}
+      {loadError && (
         <div className="alert-success animate-fade-in" style={{ backgroundColor: "#FFFBEB", border: "1px solid #F59E0B", color: "#B45309", marginBottom: "1.5rem" }}>
-          ⚠️ <strong>Notice:</strong> {error}
+          ⚠️ <strong>Notice:</strong> {loadError}
+        </div>
+      )}
+
+      {/* Save Error Banner */}
+      {saveError && (
+        <div className="alert-success animate-fade-in" style={{ backgroundColor: "#FFE4E6", border: "1px solid #F43F5E", color: "#BE123C", marginBottom: "1.5rem" }}>
+          ⚠️ <strong>Notice:</strong> {saveError}
         </div>
       )}
 

@@ -76,6 +76,30 @@ export default function Sidebar() {
   // Mount initialization
   useEffect(() => {
     setIsMounted(true);
+
+    // Version Check to handle auto-updates on Vercel deployment
+    const currentBuildTime = process.env.NEXT_PUBLIC_BUILD_TIME;
+    const savedBuildTime = localStorage.getItem("app-build-time");
+    
+    if (currentBuildTime && savedBuildTime && savedBuildTime !== currentBuildTime) {
+      localStorage.setItem("app-build-time", currentBuildTime);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister();
+          }
+          caches.keys().then((names) => {
+            for (const name of names) {
+              caches.delete(name);
+            }
+          }).then(() => {
+            window.location.reload();
+          });
+        });
+      }
+    } else if (currentBuildTime) {
+      localStorage.setItem("app-build-time", currentBuildTime);
+    }
     
     // Theme setup
     const savedTheme = localStorage.getItem("theme");
