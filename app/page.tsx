@@ -403,12 +403,6 @@ export default function DashboardPage() {
         }
       }
 
-      // Group companies into pairs (2 per page)
-      const pairs: string[][] = [];
-      for (let i = 0; i < COMPANY_ORDER.length; i += 2) {
-        pairs.push(COMPANY_ORDER.slice(i, i + 2));
-      }
-
       const getBattalionName = (company: string): string => {
         const c = company.toUpperCase();
         if (c === "ALFA" || c === "BRAVO") return "1ST BATTALION";
@@ -420,71 +414,61 @@ export default function DashboardPage() {
 
       let pagesHtml = "";
 
-      pairs.forEach((pair) => {
-        let pairCompaniesHtml = "";
-        const battalionName = getBattalionName(pair[0] || "");
-
-        pair.forEach(company => {
-          const companyData = companyDietsData[company] || {};
-          
-          // Collect columns with data (cadets count > 0)
-          interface DietColumnData {
-            name: string;
-            total: number;
-            cadets: CadetDietData[];
+      COMPANY_ORDER.forEach((company) => {
+        const battalionName = getBattalionName(company);
+        const companyData = companyDietsData[company] || {};
+        
+        // Collect columns with data (cadets count > 0)
+        interface DietColumnData {
+          name: string;
+          total: number;
+          cadets: CadetDietData[];
+        }
+        const activeDiets: DietColumnData[] = [];
+        dietNames.forEach(diet => {
+          const cadets = companyData[diet] || [];
+          if (cadets.length > 0) {
+            activeDiets.push({
+              name: diet,
+              total: cadets.length,
+              cadets: cadets
+            });
           }
-          const activeDiets: DietColumnData[] = [];
-          dietNames.forEach(diet => {
-            const cadets = companyData[diet] || [];
-            if (cadets.length > 0) {
-              activeDiets.push({
-                name: diet,
-                total: cadets.length,
-                cadets: cadets
-              });
-            }
+        });
+
+        // Build columns layout
+        let dietsHtml = "";
+        activeDiets.forEach(diet => {
+          let cadetItemsHtml = "";
+          diet.cadets.forEach(cadet => {
+            const className = cadet.isFemale ? 'class="female-cadet"' : "";
+            cadetItemsHtml += "<li " + className + ">" + cadet.name + "</li>";
           });
 
-          // Build columns layout
-          let dietsHtml = "";
-          activeDiets.forEach(diet => {
-            let cadetItemsHtml = "";
-            diet.cadets.forEach(cadet => {
-              const className = cadet.isFemale ? 'class="female-cadet"' : "";
-              cadetItemsHtml += "<li " + className + ">" + cadet.name + "</li>";
-            });
-
-            dietsHtml += '<div class="diet-column">' +
-              '<div class="diet-column-header">' + diet.name + " (" + diet.total + ")</div>" +
-              '<ul class="cadet-list">' + cadetItemsHtml + "</ul>" +
-              "</div>";
-          });
-
-          // Build totals row
-          let totalsSummaryHtml = "";
-          if (activeDiets.length > 0) {
-            const totalsList: string[] = [];
-            activeDiets.forEach(diet => {
-              totalsList.push("<strong>" + diet.name + "</strong>: " + diet.total);
-            });
-
-            totalsSummaryHtml += '<div class="company-total-row">' +
-              '<div class="total-row-label">TOTAL</div>' +
-              '<div class="total-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
-              "</div>";
-          } else {
-            totalsSummaryHtml += '<div class="company-total-row">' +
-              '<div class="total-row-label">TOTAL</div>' +
-              '<div class="total-row-values">No special diet requirements</div>' +
-              "</div>";
-          }
-
-          pairCompaniesHtml += '<div class="company-card company-' + company + '">' +
-            '<div class="company-name-banner">' + company + " COMPANY</div>" +
-            '<div class="diets-flex-container">' + dietsHtml + "</div>" +
-            '<div class="company-totals-section">' + totalsSummaryHtml + "</div>" +
+          dietsHtml += '<div class="diet-column">' +
+            '<div class="diet-column-header">' + diet.name + " (" + diet.total + ")</div>" +
+            '<ul class="cadet-list">' + cadetItemsHtml + "</ul>" +
             "</div>";
         });
+
+        // Build totals row
+        let totalsSummaryHtml = "";
+        if (activeDiets.length > 0) {
+          const totalsList: string[] = [];
+          activeDiets.forEach(diet => {
+            totalsList.push("<strong>" + diet.name + "</strong>: " + diet.total);
+          });
+
+          totalsSummaryHtml += '<div class="company-total-row">' +
+            '<div class="total-row-label">TOTAL</div>' +
+            '<div class="total-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
+            "</div>";
+        } else {
+          totalsSummaryHtml += '<div class="company-total-row">' +
+            '<div class="total-row-label">TOTAL</div>' +
+            '<div class="total-row-values">No special diet requirements</div>' +
+            "</div>";
+        }
 
         pagesHtml += '<div class="page-container">' +
           '<div class="document-title-strip">' +
@@ -492,7 +476,11 @@ export default function DashboardPage() {
           '<div class="batt-title">' + battalionName + "</div>" +
           "</div>" +
           
-          '<div class="companies-wrapper">' + pairCompaniesHtml + "</div>" +
+          '<div class="company-card company-' + company + '">' +
+          '<div class="company-name-banner">' + company + " COMPANY</div>" +
+          '<div class="diets-flex-container">' + dietsHtml + "</div>" +
+          '<div class="company-totals-section">' + totalsSummaryHtml + "</div>" +
+          "</div>" +
           "</div>";
       });
 
@@ -558,10 +546,10 @@ export default function DashboardPage() {
       const printContent = "<!DOCTYPE html><html><head>" +
         "<title>Special Diet Summary - CCAFP Mess Council</title>" +
         "<style>" +
-        "@media print { @page { size: landscape; margin: 6mm 10mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }" +
+        "@media print { @page { size: A4 landscape; margin: 6mm 10mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }" +
         "body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }" +
-        ".page-container { page-break-after: always; padding: 5px; box-sizing: border-box; }" +
-        ".page-container:last-child { page-break-after: avoid; }" +
+        ".page-container { page-break-after: always; break-after: page; page-break-inside: avoid; break-inside: avoid; padding: 5px; box-sizing: border-box; }" +
+        ".page-container:last-child { page-break-after: avoid; break-after: avoid; }" +
         ".print-header { text-align: center; line-height: 1.1; margin-bottom: 2px; }" +
         ".header-title-1 { font-size: 10pt; font-weight: bold; text-transform: uppercase; }" +
         ".header-title-2 { font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-top: 1px; }" +
