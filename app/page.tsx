@@ -359,6 +359,8 @@ export default function DashboardPage() {
         dataRows: string[][];
         totalRows: string[][];
         numCols: number;
+      }
+
       const sections: Section[] = [];
       let currentSection: Section | null = null;
 
@@ -504,71 +506,87 @@ export default function DashboardPage() {
         return "";
       };
 
+      // Group companies into pairs (2 per page)
+      const pairs: Section[][] = [];
+      for (let i = 0; i < companySections.length; i += 2) {
+        pairs.push(companySections.slice(i, i + 2));
+      }
+
       let pagesHtml = "";
 
-      companySections.forEach((section) => {
-        const battalionName = getBattalionName(section.company);
-        const dietNamesRow = section.headerRows[0] || [];
-        const totalRow = section.totalRows[0] || [];
-        const activeDiets: DietColumnData[] = [];
+      pairs.forEach((pair) => {
+        let pairCompaniesHtml = "";
+        const battalionName = getBattalionName(pair[0]?.company || "");
 
-        // Collect columns with data
-        for (let j = 1; j < section.numCols; j++) {
-          const dietName = dietNamesRow[j] || "";
-          if (!dietName || !dietName.toUpperCase().startsWith("NO ")) continue;
+        pair.forEach(section => {
+          const dietNamesRow = section.headerRows[0] || [];
+          const totalRow = section.totalRows[0] || [];
+          const activeDiets: DietColumnData[] = [];
 
-          const cadetsList: string[] = [];
-          for (const dRow of section.dataRows) {
-            const cadetVal = dRow[j] || "";
-            if (cadetVal && cadetVal.trim() !== "") {
-              cadetsList.push(cadetVal.trim());
+          // Collect columns with data
+          for (let j = 1; j < section.numCols; j++) {
+            const dietName = dietNamesRow[j] || "";
+            if (!dietName || !dietName.toUpperCase().startsWith("NO ")) continue;
+
+            const cadetsList: string[] = [];
+            for (const dRow of section.dataRows) {
+              const cadetVal = dRow[j] || "";
+              if (cadetVal && cadetVal.trim() !== "") {
+                cadetsList.push(cadetVal.trim());
+              }
+            }
+
+            const dietTotal = totalRow[j] || String(cadetsList.length);
+
+            // Filter out empty columns
+            if (cadetsList.length > 0 || (parseInt(dietTotal) > 0 && dietTotal !== "0")) {
+              activeDiets.push({
+                name: dietName,
+                total: dietTotal,
+                cadets: cadetsList
+              });
             }
           }
 
-          const dietTotal = totalRow[j] || String(cadetsList.length);
-
-          // Filter out empty columns
-          if (cadetsList.length > 0 || (parseInt(dietTotal) > 0 && dietTotal !== "0")) {
-            activeDiets.push({
-              name: dietName,
-              total: dietTotal,
-              cadets: cadetsList
-            });
-          }
-        }
-
-        // Build columns layout
-        let dietsHtml = "";
-        activeDiets.forEach(diet => {
-          let cadetItemsHtml = "";
-          diet.cadets.forEach(cadet => {
-            const isFemale = isFemaleCell(cadet);
-            const className = isFemale ? 'class="female-cadet"' : "";
-            cadetItemsHtml += "<li " + className + ">" + cadet + "</li>";
-          });
-
-          dietsHtml += '<div class="diet-column">' +
-            '<div class="diet-column-header">' + diet.name + " (" + diet.total + ")</div>" +
-            '<ul class="cadet-list">' + cadetItemsHtml + "</ul>" +
-            "</div>";
-        });
-
-        // Build totals row
-        let totalsSummaryHtml = "";
-        section.totalRows.forEach(tRow => {
-          const label = tRow[0] || "TOTAL";
-          const totalsList: string[] = [];
+          // Build columns layout
+          let dietsHtml = "";
           activeDiets.forEach(diet => {
-            const origIdx = dietNamesRow.indexOf(diet.name);
-            if (origIdx !== -1) {
-              const val = tRow[origIdx] || "0";
-              totalsList.push("<strong>" + diet.name + "</strong>: " + val);
-            }
+            let cadetItemsHtml = "";
+            diet.cadets.forEach(cadet => {
+              const isFemale = isFemaleCell(cadet);
+              const className = isFemale ? 'class="female-cadet"' : "";
+              cadetItemsHtml += "<li " + className + ">" + cadet + "</li>";
+            });
+
+            dietsHtml += '<div class="diet-column">' +
+              '<div class="diet-column-header">' + diet.name + " (" + diet.total + ")</div>" +
+              '<ul class="cadet-list">' + cadetItemsHtml + "</ul>" +
+              "</div>";
           });
 
-          totalsSummaryHtml += '<div class="company-total-row">' +
-            '<div class="total-row-label">' + label + "</div>" +
-            '<div class="total-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
+          // Build totals row
+          let totalsSummaryHtml = "";
+          section.totalRows.forEach(tRow => {
+            const label = tRow[0] || "TOTAL";
+            const totalsList: string[] = [];
+            activeDiets.forEach(diet => {
+              const origIdx = dietNamesRow.indexOf(diet.name);
+              if (origIdx !== -1) {
+                const val = tRow[origIdx] || "0";
+                totalsList.push("<strong>" + diet.name + "</strong>: " + val);
+              }
+            });
+
+            totalsSummaryHtml += '<div class="company-total-row">' +
+              '<div class="total-row-label">' + label + "</div>" +
+              '<div class="total-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
+              "</div>";
+          });
+
+          pairCompaniesHtml += '<div class="company-card">' +
+            '<div class="company-name-banner">' + section.company + " COMPANY</div>" +
+            '<div class="diets-flex-container">' + dietsHtml + "</div>" +
+            '<div class="company-totals-section">' + totalsSummaryHtml + "</div>" +
             "</div>";
         });
 
@@ -586,11 +604,7 @@ export default function DashboardPage() {
           '<div class="batt-title">' + battalionName + "</div>" +
           "</div>" +
           
-          '<div class="company-card">' +
-          '<div class="company-name-banner">' + section.company + " COMPANY</div>" +
-          '<div class="diets-flex-container">' + dietsHtml + "</div>" +
-          '<div class="company-totals-section">' + totalsSummaryHtml + "</div>" +
-          "</div>" +
+          '<div class="companies-wrapper">' + pairCompaniesHtml + "</div>" +
           "</div>";
       });
 
