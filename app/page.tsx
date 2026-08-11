@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "./context/AuthContext";
 
 // interface for a Cadet
@@ -44,6 +45,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<"MOCK" | "LIVE">("MOCK");
   const [greeting, setGreeting] = useState("Good day, Officer");
+  const [mounted, setMounted] = useState(false);
   
   // Default dietary column names from your database sheet
   const [dietColumns, setDietColumns] = useState<string[]>([
@@ -77,7 +79,20 @@ export default function DashboardPage() {
     if (hour < 12) setGreeting("Good morning, Officer");
     else if (hour < 18) setGreeting("Good afternoon, Officer");
     else setGreeting("Good evening, Officer");
+    setMounted(true);
   }, []);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [isModalOpen]);
 
   // Map company name to battalion (as requested)
   const getBattalion = (co: string): string => {
@@ -296,286 +311,243 @@ export default function DashboardPage() {
     preferences: dietColumns.filter(d => preferenceDiets.includes(d.toUpperCase()) || !allergenDiets.includes(d.toUpperCase())),
   };
 
-  const handlePrintSpecialDietReport = () => {
-    const getFormattedDateTime = () => {
+  const handlePrintSpecialDietReport = async () => {
+    try {
+      // Fetch the report data directly from the formatted Google Sheet
+      const REPORT_URL = "https://docs.google.com/spreadsheets/d/14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ/export?format=csv&gid=1721294419";
+      const response = await fetch(REPORT_URL);
+      if (!response.ok) throw new Error("Failed to fetch report data");
+      const csvText = await response.text();
+      const allRows = parseCSV(csvText);
+
+      // Military datetime format
       const now = new Date();
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const monthNames = [
-        "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
-        "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
-      ];
-      const month = monthNames[now.getMonth()];
-      const year = now.getFullYear();
-      return `${day} ${hours}${minutes}H ${month} ${year}`;
-    };
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const formattedDateTime = day + " " + hours + minutes + "H " + monthNames[now.getMonth()] + " " + now.getFullYear();
 
-    const formattedDateTime = getFormattedDateTime();
+      const COMPANY_NAMES = new Set(["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT", "GOLF", "HAWK"]);
+      const FEMALE_SURNAMES = ["DE MESA", "MALANOT", "FELIPE", "LORICO", "PRACULLOS", "ATIWEN", "BALILI", "ANGOLUAN"];
 
-    const standardCompanies = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT", "GOLF", "HAWK"];
-    const uniqueCompanies = Array.from(new Set(cadets.map(c => c.company.toUpperCase())))
-      .filter(Boolean)
-      .sort((a, b) => {
-        const idxA = standardCompanies.indexOf(a);
-        const idxB = standardCompanies.indexOf(b);
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        if (idxA !== -1) return -1;
-        if (idxB !== -1) return 1;
-        return a.localeCompare(b);
+      const isFemaleCell = (text: string): boolean => {
+        const upper = text.toUpperCase().trim();
+        if (!upper) return false;
+        return FEMALE_SURNAMES.some(name => upper.includes(name));
+      };
+
+      const hasDietHeaders = (row: string[]): boolean => {
+        return row.slice(1).some(c => c.trim().toUpperCase().startsWith("NO "));
+      };
+
+      // Pad all rows to consistent length and trim cells
+      const maxCols = Math.max(...allRows.map(r => r.length));
+      const rows: string[][] = allRows.map(r => {
+        const padded = [...r];
+        while (padded.length < maxCols) padded.push("");
+        return padded.map(c => c.trim());
       });
 
-    const FEMALE_CADETS = new Set([
-      "DE MESA", "MALANOT", "FELIPE", "LORICO", "PRACULLOS", "ATIWEN", "BALILI", "ANGOLUAN"
-    ]);
+      // Filter empty rows
+      const nonEmptyRows = rows.filter(r => r.some(c => c !== ""));
 
-    const tablesHtml = uniqueCompanies.map(company => {
-      const companyCadets = cadets.filter(c => c.company.toUpperCase() === company);
-      
-      const dietCadetsMap: { [diet: string]: Cadet[] } = {};
-      dietColumns.forEach(diet => {
-        dietCadetsMap[diet] = companyCadets.filter(c => c.diets[diet] === true);
-      });
-
-      let maxRows = 0;
-      dietColumns.forEach(diet => {
-        if (dietCadetsMap[diet].length > maxRows) {
-          maxRows = dietCadetsMap[diet].length;
-        }
-      });
-
-      let rowsHtml = "";
-      for (let i = 0; i < maxRows; i++) {
-        rowsHtml += "<tr>";
-        rowsHtml += "<td></td>";
-        
-        dietColumns.forEach(diet => {
-          const cadet = dietCadetsMap[diet][i];
-          if (cadet) {
-            const isFemale = FEMALE_CADETS.has(cadet.name.toUpperCase());
-            const textClass = isFemale ? 'class="female-cadet"' : "";
-            rowsHtml += `<td ${textClass}>${cadet.class} ${cadet.name}</td>`;
-          } else {
-            rowsHtml += "<td></td>";
-          }
-        });
-        rowsHtml += "</tr>";
+      // Group rows into company sections
+      interface Section {
+        company: string;
+        headerRows: string[][];
+        dataRows: string[][];
+        totalRow: string[] | null;
+        numCols: number;
       }
 
-      let totalRowHtml = "<tr>";
-      totalRowHtml += "<td class='total-label'>TOTAL</td>";
-      dietColumns.forEach(diet => {
-        const count = dietCadetsMap[diet].length;
-        totalRowHtml += `<td class="total-val">${count}</td>`;
-      });
-      totalRowHtml += "</tr>";
+      const sections: Section[] = [];
+      let currentSection: Section | null = null;
 
-      return `
-        <div class="company-section">
-          <div class="print-header">
-            <div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>
-            <div class="header-title-2">Mess Council</div>
-            <div class="header-title-3">Fort General Gregorio H. del Pilar</div>
-            <div class="header-title-4">Baguio City</div>
-          </div>
+      for (let i = 0; i < nonEmptyRows.length; i++) {
+        const row = nonEmptyRows[i];
+        const first = row[0].toUpperCase();
+        const isDietHdr = hasDietHeaders(row);
+        const isCompany = COMPANY_NAMES.has(first);
+        const isTotal = first === "TOTAL";
+        const isBattTotal = first.includes("BATT") && first.includes("TOTAL");
+        const isOverall = first.includes("OVERALL") && first.includes("TOTAL");
 
-          <div class="print-datetime">${formattedDateTime}</div>
+        // Skip battalion totals and overall totals
+        if (isBattTotal || isOverall) {
+          if (currentSection) { sections.push(currentSection); currentSection = null; }
+          continue;
+        }
 
-          <table class="diet-table">
-            <thead>
-              <tr class="header-row-1">
-                <th>${company}</th>
-                ${dietColumns.map(diet => `<th>${diet}</th>`).join('')}
-              </tr>
-              <tr class="header-row-2">
-                <th>${company}</th>
-                ${dietColumns.map(diet => `<th>${diet}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-              ${totalRowHtml}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }).join('');
-
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Special Diet Report - CCAFP Mess Council</title>
-        <style>
-          @media print {
-            @page {
-              size: landscape;
-              margin: 8mm;
+        if (isCompany && isDietHdr && first !== (currentSection?.company || "")) {
+          // Standard company header (e.g. ALFA, BRAVO, CHARLIE, DELTA, ECHO, HAWK)
+          if (currentSection) sections.push(currentSection);
+          currentSection = { company: first, headerRows: [row], dataRows: [], totalRow: null, numCols: 0 };
+        } else if (isDietHdr && !currentSection) {
+          // Diet-only header starting a new section (FOXTROT/GOLF style)
+          let compName = "";
+          for (let j = i + 1; j < nonEmptyRows.length && j <= i + 5; j++) {
+            const nf = nonEmptyRows[j][0].toUpperCase();
+            if (COMPANY_NAMES.has(nf)) { compName = nf; break; }
+            if (nf === "TOTAL" || nf.includes("BATT")) break;
+          }
+          currentSection = { company: compName, headerRows: [row], dataRows: [], totalRow: null, numCols: 0 };
+        } else if (isDietHdr && currentSection) {
+          // Additional header row within current section
+          if (currentSection.dataRows.length === 0) {
+            // Still in the header area, add as second header row
+            currentSection.headerRows.push(row);
+          } else {
+            // Data already exists, this header starts a new section
+            sections.push(currentSection);
+            let compName = "";
+            for (let j = i + 1; j < nonEmptyRows.length && j <= i + 5; j++) {
+              const nf = nonEmptyRows[j][0].toUpperCase();
+              if (COMPANY_NAMES.has(nf)) { compName = nf; break; }
+              if (nf === "TOTAL" || nf.includes("BATT")) break;
             }
-            body {
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
+            currentSection = { company: compName, headerRows: [row], dataRows: [], totalRow: null, numCols: 0 };
+          }
+        } else if (isTotal) {
+          if (currentSection) {
+            currentSection.totalRow = row;
+            sections.push(currentSection);
+            currentSection = null;
+          }
+        } else {
+          // Data row
+          if (currentSection) {
+            if (isCompany && !currentSection.company) {
+              currentSection.company = first;
             }
-            .no-print {
-              display: none;
+            currentSection.dataRows.push(row);
+          }
+        }
+      }
+      if (currentSection) sections.push(currentSection);
+
+      // Detect unlabeled total rows (numeric-only last rows without TOTAL label, e.g. ECHO)
+      for (const section of sections) {
+        if (!section.totalRow && section.dataRows.length > 0) {
+          const lastRow = section.dataRows[section.dataRows.length - 1];
+          if (!lastRow[0]) {
+            const filled = lastRow.slice(1).filter(c => c !== "");
+            const allNumeric = filled.length > 0 && filled.every(c => /^\d+$/.test(c));
+            if (allNumeric) {
+              section.totalRow = section.dataRows.pop()!;
+              section.totalRow[0] = "TOTAL";
             }
           }
+        }
+      }
 
-          body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 10px;
-            color: #000;
-            background-color: #fff;
+      // Calculate active column count per section
+      for (const section of sections) {
+        let mc = 0;
+        const allSectionRows = [...section.headerRows, ...section.dataRows];
+        if (section.totalRow) allSectionRows.push(section.totalRow);
+        for (const r of allSectionRows) {
+          for (let j = r.length - 1; j >= 0; j--) {
+            if (r[j]) { mc = Math.max(mc, j + 1); break; }
           }
+        }
+        section.numCols = mc;
+      }
 
-          .print-header {
-            text-align: center;
-            margin-bottom: 12px;
-            line-height: 1.3;
-          }
+      // Build HTML for each company section
+      const officialHeader =
+        '<div class="print-header">' +
+        '<div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>' +
+        '<div class="header-title-2">Mess Council</div>' +
+        '<div class="header-title-3">Fort General Gregorio H. del Pilar</div>' +
+        '<div class="header-title-4">Baguio City</div>' +
+        '</div>' +
+        '<div class="print-datetime">' + formattedDateTime + '</div>';
 
-          .header-title-1 {
-            font-size: 12pt;
-            font-weight: bold;
-            text-transform: uppercase;
-          }
+      let tablesHtml = "";
 
-          .header-title-2 {
-            font-size: 11pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-top: 2px;
-          }
+      for (const section of sections) {
+        const nc = section.numCols;
 
-          .header-title-3 {
-            font-size: 9pt;
-            margin-top: 2px;
-          }
+        tablesHtml += '<div class="company-section">';
+        tablesHtml += officialHeader;
+        tablesHtml += '<table class="diet-table">';
 
-          .header-title-4 {
-            font-size: 9pt;
-            margin-top: 2px;
+        // Header rows
+        for (let h = 0; h < section.headerRows.length; h++) {
+          const hdrClass = h === 0 ? "header-row-1" : "header-row-2";
+          tablesHtml += '<tr class="' + hdrClass + '">';
+          for (let j = 0; j < nc; j++) {
+            tablesHtml += "<th>" + (section.headerRows[h][j] || "") + "</th>";
           }
+          tablesHtml += "</tr>";
+        }
 
-          .print-datetime {
-            text-align: center;
-            font-size: 10pt;
-            font-weight: bold;
-            margin-bottom: 20px;
+        // Data rows
+        for (const dRow of section.dataRows) {
+          tablesHtml += "<tr>";
+          for (let j = 0; j < nc; j++) {
+            const cell = dRow[j] || "";
+            if (cell && isFemaleCell(cell)) {
+              tablesHtml += '<td class="female-cadet">' + cell + "</td>";
+            } else {
+              tablesHtml += "<td>" + cell + "</td>";
+            }
           }
+          tablesHtml += "</tr>";
+        }
 
-          .company-section {
-            page-break-after: always;
+        // Total row
+        if (section.totalRow) {
+          tablesHtml += '<tr class="total-row">';
+          for (let j = 0; j < nc; j++) {
+            const cell = section.totalRow[j] || "";
+            const cls = j === 0 ? "total-label" : "total-val";
+            tablesHtml += '<td class="' + cls + '">' + cell + "</td>";
           }
-          
-          .company-section:last-child {
-            page-break-after: avoid;
-          }
+          tablesHtml += "</tr>";
+        }
 
-          .diet-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 7.5pt;
-            table-layout: auto;
-          }
+        tablesHtml += "</table></div>";
+      }
 
-          .diet-table th, .diet-table td {
-            border: 1px solid #777;
-            padding: 4px 3px;
-            text-align: left;
-            vertical-align: middle;
-          }
+      // Build the full print HTML document
+      const printContent = "<!DOCTYPE html><html><head>" +
+        "<title>Special Diet Report - CCAFP Mess Council</title>" +
+        "<style>" +
+        "@media print { @page { size: landscape; margin: 8mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }" +
+        "body { font-family: Arial, sans-serif; margin: 0; padding: 10px; color: #000; background: #fff; }" +
+        ".print-header { text-align: center; margin-bottom: 10px; line-height: 1.3; }" +
+        ".header-title-1 { font-size: 12pt; font-weight: bold; text-transform: uppercase; }" +
+        ".header-title-2 { font-size: 11pt; font-weight: bold; text-transform: uppercase; margin-top: 2px; }" +
+        ".header-title-3 { font-size: 9pt; margin-top: 2px; }" +
+        ".header-title-4 { font-size: 9pt; margin-top: 2px; }" +
+        ".print-datetime { text-align: center; font-size: 10pt; font-weight: bold; margin-bottom: 15px; }" +
+        ".company-section { page-break-after: always; }" +
+        ".company-section:last-child { page-break-after: avoid; }" +
+        ".diet-table { width: 100%; border-collapse: collapse; font-size: 8pt; table-layout: auto; }" +
+        ".diet-table th, .diet-table td { border: 1px solid #999; padding: 3px 4px; text-align: left; vertical-align: top; }" +
+        ".diet-table th { font-size: 7pt; font-weight: bold; white-space: normal; word-wrap: break-word; text-align: center; }" +
+        ".diet-table td { white-space: nowrap; font-size: 7.5pt; }" +
+        ".header-row-1 th { background-color: #f2f2f2 !important; }" +
+        ".header-row-2 th { background-color: #b6d7a8 !important; }" +
+        ".female-cadet { color: #d93025; font-weight: 500; }" +
+        ".total-label, .total-val { font-weight: bold; background-color: #f9f9f9 !important; border-top: 2px solid #000 !important; border-bottom: 3px double #000 !important; }" +
+        "</style></head><body>" +
+        tablesHtml +
+        "<script>window.onload = function() { window.print(); }<\/script>" +
+        "</body></html>";
 
-          .diet-table th {
-            font-size: 6.5pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            white-space: normal;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            text-align: center;
-          }
-
-          .diet-table td {
-            white-space: nowrap;
-            font-size: 7pt;
-          }
-
-          .diet-table th:first-child, .diet-table td:first-child {
-            width: 45px;
-            min-width: 45px;
-            max-width: 45px;
-            text-align: center;
-            font-weight: bold;
-            background-color: #f2f2f2;
-          }
-
-          .header-row-1 th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-            text-align: left;
-          }
-
-          .header-row-2 th {
-            background-color: #b6d7a8;
-            color: #000;
-            font-weight: bold;
-            text-align: left;
-          }
-
-          .header-row-2 th:first-child {
-            background-color: #b6d7a8 !important;
-          }
-
-          .header-row-1 th {
-            background-color: #f2f2f2 !important;
-          }
-          .header-row-2 th {
-            background-color: #b6d7a8 !important;
-          }
-
-          .female-cadet {
-            color: #d93025;
-            font-weight: 500;
-          }
-
-          .total-label {
-            font-weight: bold;
-            background-color: #f9f9f9;
-          }
-
-          .total-val {
-            font-weight: bold;
-            background-color: #f9f9f9;
-            text-align: left;
-          }
-
-          .total-label, .total-val {
-            background-color: #f9f9f9 !important;
-            border-top: 2px solid #000 !important;
-            border-bottom: 3px double #000 !important;
-          }
-        </style>
-      </head>
-      <body>
-        ${tablesHtml}
-
-        <script>
-          window.onload = function() {
-            window.print();
-          }
-        </script>
-      </body>
-      </html>
-    `;
-
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-    } else {
-      alert("Could not open print window. Please disable your pop-up blocker.");
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+      } else {
+        alert("Could not open print window. Please disable your pop-up blocker.");
+      }
+    } catch (err) {
+      console.error("Print report error:", err);
+      alert("Failed to load the special diet report data. Please check your internet connection and try again.");
     }
   };
 
@@ -1071,7 +1043,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Diet List Modal */}
-      {isModalOpen && (
+      {isModalOpen && mounted && createPortal(
         <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -1112,7 +1084,8 @@ export default function DashboardPage() {
               <button className="btn btn-accent" style={{ padding: "8px 16px" }} onClick={() => setIsModalOpen(false)}>Close</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
