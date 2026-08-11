@@ -583,7 +583,7 @@ export default function DashboardPage() {
               "</div>";
           });
 
-          pairCompaniesHtml += '<div class="company-card">' +
+          pairCompaniesHtml += '<div class="company-card company-' + section.company.toUpperCase() + '">' +
             '<div class="company-name-banner">' + section.company + " COMPANY</div>" +
             '<div class="diets-flex-container">' + dietsHtml + "</div>" +
             '<div class="company-totals-section">' + totalsSummaryHtml + "</div>" +
@@ -699,6 +699,30 @@ export default function DashboardPage() {
         ".summary-item-label { font-weight: 600; color: #444; text-transform: uppercase; }" +
         ".summary-item-val { font-weight: 700; color: #000; }" +
         ".summary-card:last-child .summary-item-label { color: #222; }" +
+        ".company-ALFA { border-color: #2e7d32; }" +
+        ".company-ALFA .company-name-banner { background-color: #e8f5e9; border-left-color: #2e7d32; color: #2e7d32; }" +
+        ".company-ALFA .diet-column-header { background-color: #2e7d32 !important; color: #fff; }" +
+        ".company-BRAVO { border-color: #999; }" +
+        ".company-BRAVO .company-name-banner { background-color: #fafafa; border-left-color: #999; color: #333; }" +
+        ".company-BRAVO .diet-column-header { background-color: #e0e0e0 !important; color: #000; }" +
+        ".company-CHARLIE { border-color: #c62828; }" +
+        ".company-CHARLIE .company-name-banner { background-color: #ffebee; border-left-color: #c62828; color: #c62828; }" +
+        ".company-CHARLIE .diet-column-header { background-color: #c62828 !important; color: #fff; }" +
+        ".company-DELTA { border-color: #1565c0; }" +
+        ".company-DELTA .company-name-banner { background-color: #e3f2fd; border-left-color: #1565c0; color: #1565c0; }" +
+        ".company-DELTA .diet-column-header { background-color: #1565c0 !important; color: #fff; }" +
+        ".company-ECHO { border-color: #ef6c00; }" +
+        ".company-ECHO .company-name-banner { background-color: #fff3e0; border-left-color: #ef6c00; color: #ef6c00; }" +
+        ".company-ECHO .diet-column-header { background-color: #ef6c00 !important; color: #fff; }" +
+        ".company-FOXTROT { border-color: #800000; }" +
+        ".company-FOXTROT .company-name-banner { background-color: #f5e6e6; border-left-color: #800000; color: #800000; }" +
+        ".company-FOXTROT .diet-column-header { background-color: #800000 !important; color: #fff; }" +
+        ".company-GOLF { border-color: #fbc02d; }" +
+        ".company-GOLF .company-name-banner { background-color: #fffde7; border-left-color: #fbc02d; color: #d4ac0d; }" +
+        ".company-GOLF .diet-column-header { background-color: #fbc02d !important; color: #000; }" +
+        ".company-HAWK { border-color: #000000; }" +
+        ".company-HAWK .company-name-banner { background-color: #f5f5f5; border-left-color: #000000; color: #000000; }" +
+        ".company-HAWK .diet-column-header { background-color: #000000 !important; color: #fff; }" +
         "</style></head><body>" +
         pagesHtml +
         "<script>window.onload = function() { window.print(); }<\/script>" +
