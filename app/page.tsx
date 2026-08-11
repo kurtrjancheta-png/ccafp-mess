@@ -47,6 +47,8 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState("Good day, Officer");
   const [mounted, setMounted] = useState(false);
   
+  const [lastSynced, setLastSynced] = useState<string>("");
+  
   // Default dietary column names from your database sheet
   const [dietColumns, setDietColumns] = useState<string[]>([
     "NO FISH", "NO PORK", "NO SEAFOOD", "NO EGG", "NO CHICKEN", "NO BLOOD", 
@@ -72,14 +74,21 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  // Greeting Setup & Data Fetch on mount
+  // Greeting Setup & Data Fetch on mount with 30s automatic sync
   useEffect(() => {
-    fetchSpreadsheetData();
+    fetchSpreadsheetData(false); // First load is not silent to show initial spinner if needed
+    
+    const interval = setInterval(() => {
+      fetchSpreadsheetData(true); // Silent background sync
+    }, 30000);
+
     const hour = new Date().getHours();
     if (hour < 12) setGreeting("Good morning, Officer");
     else if (hour < 18) setGreeting("Good afternoon, Officer");
     else setGreeting("Good evening, Officer");
     setMounted(true);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Lock body scroll when modal is open
@@ -163,12 +172,12 @@ export default function DashboardPage() {
     return lines;
   };
 
-  const fetchSpreadsheetData = async () => {
+  const fetchSpreadsheetData = async (silent = false) => {
     const sheetId = process.env.NEXT_PUBLIC_SPREADSHEET_ID || "14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ";
     const gid = process.env.NEXT_PUBLIC_DATABASE_GID || "482780671";
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}&t=${Date.now()}`;
 
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
 
     try {
@@ -246,6 +255,7 @@ export default function DashboardPage() {
       setDietColumns(parsedDietCols);
       setCadets(parsedCadets);
       setDataSource("LIVE");
+      setLastSynced(new Date().toLocaleTimeString());
     } catch (err: any) {
       console.warn("Fetch failed, falling back to mock dataset:", err.message);
       setError(`Google Sheet connection unavailable. Displaying fallback mock database.`);
@@ -255,8 +265,9 @@ export default function DashboardPage() {
         "NO FOOD PROCESSED FOOD", "NO BEANS", "NO NUTS", "NO TOFU", "NO COFFEE", 
         "NO CHOCOLATE", "NO TOMATOES", "NO SPICY", "NO BEEF"
       ]);
+      setLastSynced(new Date().toLocaleTimeString() + " (Offline)");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -313,12 +324,25 @@ export default function DashboardPage() {
 
   const handlePrintSpecialDietReport = async () => {
     try {
-      // Fetch the report data directly from the formatted Google Sheet GID 1721294419
-      const REPORT_URL = "https://docs.google.com/spreadsheets/d/14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ/export?format=csv&gid=1721294419";
-      const response = await fetch(REPORT_URL);
-      if (!response.ok) throw new Error("Failed to fetch report data");
+      // Fetch data from the database tab (GID 482780671)
+      const DATABASE_URL = "https://docs.google.com/spreadsheets/d/14dSYE1ntxNrnBdgSn-mWU5z-GMHK7qdMcKFchgh0pAQ/export?format=csv&gid=482780671";
+      const response = await fetch(DATABASE_URL);
+      if (!response.ok) throw new Error("Failed to fetch database data");
       const csvText = await response.text();
       const allRows = parseCSV(csvText);
+
+      if (allRows.length === 0) throw new Error("No data found in database");
+
+      // Parse headers to locate special diets
+      const headers = allRows[0].map(h => h.trim());
+      const dietStartIndex = 7; // Diets start at column index 7 ("NO FISH")
+      
+      const dietNames: string[] = [];
+      for (let j = dietStartIndex; j < headers.length; j++) {
+        if (headers[j]) {
+          dietNames.push(headers[j]);
+        }
+      }
 
       // Military datetime format
       const now = new Date();
@@ -328,173 +352,61 @@ export default function DashboardPage() {
       const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
       const formattedDateTime = day + " " + hours + minutes + "H " + monthNames[now.getMonth()] + " " + now.getFullYear();
 
-      const COMPANY_NAMES = new Set(["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT", "GOLF", "HAWK"]);
+      const COMPANY_ORDER = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT", "GOLF", "HAWK"];
       const FEMALE_SURNAMES = ["DE MESA", "MALANOT", "FELIPE", "LORICO", "PRACULLOS", "ATIWEN", "BALILI", "ANGOLUAN"];
 
-      const isFemaleCell = (text: string): boolean => {
-        const upper = text.toUpperCase().trim();
-        if (!upper) return false;
-        return FEMALE_SURNAMES.some(name => upper.includes(name));
+      const isFemaleName = (name: string): boolean => {
+        const upper = name.toUpperCase();
+        return FEMALE_SURNAMES.some(f => upper.includes(f));
       };
 
-      const hasDietHeaders = (row: string[]): boolean => {
-        return row.slice(1).some(c => c.trim().toUpperCase().startsWith("NO "));
-      };
+      interface CadetDietData {
+        name: string;
+        isFemale: boolean;
+      }
 
-      // Pad all rows to consistent length and trim cells
-      const maxCols = Math.max(...allRows.map(r => r.length));
-      const rows: string[][] = allRows.map(r => {
-        const padded = [...r];
-        while (padded.length < maxCols) padded.push("");
-        return padded.map(c => c.trim());
+      // Map to store cadet names per company per diet
+      const companyDietsData: { [company: string]: { [diet: string]: CadetDietData[] } } = {};
+      
+      COMPANY_ORDER.forEach(comp => {
+        companyDietsData[comp] = {};
+        dietNames.forEach(diet => {
+          companyDietsData[comp][diet] = [];
+        });
       });
 
-      // Filter empty rows
-      const nonEmptyRows = rows.filter(r => r.some(c => c !== ""));
-
-      // Group rows into company sections
-      interface Section {
-        company: string;
-        headerRows: string[][];
-        dataRows: string[][];
-        totalRows: string[][];
-        numCols: number;
-      }
-
-      const sections: Section[] = [];
-      let currentSection: Section | null = null;
-
-      let firstBattRow: string[] | null = null;
-      let secondBattRow: string[] | null = null;
-      let thirdBattRow: string[] | null = null;
-      let fourthBattRow: string[] | null = null;
-      let overallRow: string[] | null = null;
-
-      for (let i = 0; i < nonEmptyRows.length; i++) {
-        const row = nonEmptyRows[i];
-        const first = row[0].toUpperCase().trim();
+      // Loop through data rows and parse special diets dynamically
+      for (let i = 1; i < allRows.length; i++) {
+        const row = allRows[i];
+        if (row.length < dietStartIndex) continue;
         
-        // Extract battalion and overall totals separately to place on summary page
-        if (first.includes("1ST BATT")) {
-          firstBattRow = row;
-          continue;
-        } else if (first.includes("2ND BATT")) {
-          secondBattRow = row;
-          continue;
-        } else if (first.includes("3RD BATT")) {
-          thirdBattRow = row;
-          continue;
-        } else if (first.includes("4TH BATT")) {
-          fourthBattRow = row;
-          continue;
-        } else if (first.includes("OVERALL")) {
-          overallRow = row;
-          continue;
-        }
+        const rawComp = row[0]?.toUpperCase().trim();
+        if (!rawComp || !companyDietsData[rawComp]) continue; // Skip if invalid company
 
-        const isDietHdr = hasDietHeaders(row);
-        const isCompany = COMPANY_NAMES.has(first);
-        const isTotal = first === "TOTAL" || (first.includes("TOTAL") && !first.includes("BATT") && !first.includes("OVERALL"));
-        const isLabelOnly = isCompany && row.slice(1).every(c => c.trim() === "");
+        const rawName = row[1]?.trim() || "";
+        if (!rawName) continue;
 
-        // Check if this row starts/adds to header of a company section
-        if (isDietHdr) {
-          const shouldStartNew = !currentSection || currentSection.dataRows.length > 0 || currentSection.totalRows.length > 0;
-          if (shouldStartNew) {
-            if (currentSection) sections.push(currentSection);
-            
-            let sectionCompany = isCompany ? first : "";
-            if (!sectionCompany) {
-              for (let j = i + 1; j < nonEmptyRows.length && j <= i + 5; j++) {
-                const nextFirst = nonEmptyRows[j][0].toUpperCase().trim();
-                if (COMPANY_NAMES.has(nextFirst)) {
-                  sectionCompany = nextFirst;
-                  break;
-                }
-              }
-            }
-            currentSection = {
-              company: sectionCompany || "SPECIAL DIETS",
-              headerRows: [row],
-              dataRows: [],
-              totalRows: [],
-              numCols: 0
-            };
-          } else if (currentSection) {
-            currentSection.headerRows.push(row);
-          }
-          continue;
-        }
+        const rawClass = row[3]?.trim() || "";
+        const fullName = rawClass ? `${rawClass} ${rawName}` : rawName;
+        const isFemale = isFemaleName(fullName);
 
-        // If we don't have a section yet, create a dummy one
-        if (!currentSection) {
-          currentSection = {
-            company: "SPECIAL DIETS",
-            headerRows: [],
-            dataRows: [],
-            totalRows: [],
-            numCols: 0
-          };
-        }
-
-        // Classify the row inside the active section
-        if (isLabelOnly) {
-          // Skip company label rows
-          continue;
-        } else if (isTotal) {
-          currentSection.totalRows.push(row);
-        } else {
-          // Data row!
-          const cleanRow = [...row];
-          if (isCompany) {
-            cleanRow[0] = "";
-          }
-          currentSection.dataRows.push(cleanRow);
-        }
-      }
-      
-      if (currentSection) {
-        sections.push(currentSection);
-      }
-
-      // Detect unlabeled total rows (numeric-only last rows without TOTAL label, e.g. ECHO)
-      for (const section of sections) {
-        if (section.totalRows.length === 0 && section.dataRows.length > 0) {
-          const lastRow = section.dataRows[section.dataRows.length - 1];
-          if (!lastRow[0]) {
-            const filled = lastRow.slice(1).filter(c => c !== "");
-            const allNumeric = filled.length > 0 && filled.every(c => /^\d+$/.test(c));
-            if (allNumeric) {
-              const popped = section.dataRows.pop()!;
-              popped[0] = "TOTAL";
-              section.totalRows.push(popped);
-            }
+        // Check each diet column
+        for (let j = dietStartIndex; j < row.length; j++) {
+          const val = row[j]?.trim();
+          const dietName = headers[j];
+          if (val === "1" && dietName && companyDietsData[rawComp][dietName]) {
+            companyDietsData[rawComp][dietName].push({
+              name: fullName,
+              isFemale: isFemale
+            });
           }
         }
       }
 
-      // Calculate active column count per section
-      for (const section of sections) {
-        let mc = 0;
-        const allSectionRows = [...section.headerRows, ...section.dataRows, ...section.totalRows];
-        for (const r of allSectionRows) {
-          for (let j = r.length - 1; j >= 0; j--) {
-            if (r[j] && r[j].trim() !== "") {
-              mc = Math.max(mc, j + 1);
-              break;
-            }
-          }
-        }
-        section.numCols = mc;
-      }
-
-      // Separate companies from overall summary
-      const companySections = sections.filter(s => s.company !== "SPECIAL DIETS" && COMPANY_NAMES.has(s.company));
-
-      interface DietColumnData {
-        name: string;
-        total: string;
-        cadets: string[];
+      // Group companies into pairs (2 per page)
+      const pairs: string[][] = [];
+      for (let i = 0; i < COMPANY_ORDER.length; i += 2) {
+        pairs.push(COMPANY_ORDER.slice(i, i + 2));
       }
 
       const getBattalionName = (company: string): string => {
@@ -506,56 +418,40 @@ export default function DashboardPage() {
         return "";
       };
 
-      // Group companies into pairs (2 per page)
-      const pairs: Section[][] = [];
-      for (let i = 0; i < companySections.length; i += 2) {
-        pairs.push(companySections.slice(i, i + 2));
-      }
-
       let pagesHtml = "";
 
       pairs.forEach((pair) => {
         let pairCompaniesHtml = "";
-        const battalionName = getBattalionName(pair[0]?.company || "");
+        const battalionName = getBattalionName(pair[0] || "");
 
-        pair.forEach(section => {
-          const dietNamesRow = section.headerRows[0] || [];
-          const totalRow = section.totalRows[0] || [];
+        pair.forEach(company => {
+          const companyData = companyDietsData[company] || {};
+          
+          // Collect columns with data (cadets count > 0)
+          interface DietColumnData {
+            name: string;
+            total: number;
+            cadets: CadetDietData[];
+          }
           const activeDiets: DietColumnData[] = [];
-
-          // Collect columns with data
-          for (let j = 1; j < section.numCols; j++) {
-            const dietName = dietNamesRow[j] || "";
-            if (!dietName || !dietName.toUpperCase().startsWith("NO ")) continue;
-
-            const cadetsList: string[] = [];
-            for (const dRow of section.dataRows) {
-              const cadetVal = dRow[j] || "";
-              if (cadetVal && cadetVal.trim() !== "") {
-                cadetsList.push(cadetVal.trim());
-              }
-            }
-
-            const dietTotal = totalRow[j] || String(cadetsList.length);
-
-            // Filter out empty columns
-            if (cadetsList.length > 0 || (parseInt(dietTotal) > 0 && dietTotal !== "0")) {
+          dietNames.forEach(diet => {
+            const cadets = companyData[diet] || [];
+            if (cadets.length > 0) {
               activeDiets.push({
-                name: dietName,
-                total: dietTotal,
-                cadets: cadetsList
+                name: diet,
+                total: cadets.length,
+                cadets: cadets
               });
             }
-          }
+          });
 
           // Build columns layout
           let dietsHtml = "";
           activeDiets.forEach(diet => {
             let cadetItemsHtml = "";
             diet.cadets.forEach(cadet => {
-              const isFemale = isFemaleCell(cadet);
-              const className = isFemale ? 'class="female-cadet"' : "";
-              cadetItemsHtml += "<li " + className + ">" + cadet + "</li>";
+              const className = cadet.isFemale ? 'class="female-cadet"' : "";
+              cadetItemsHtml += "<li " + className + ">" + cadet.name + "</li>";
             });
 
             dietsHtml += '<div class="diet-column">' +
@@ -566,25 +462,25 @@ export default function DashboardPage() {
 
           // Build totals row
           let totalsSummaryHtml = "";
-          section.totalRows.forEach(tRow => {
-            const label = tRow[0] || "TOTAL";
+          if (activeDiets.length > 0) {
             const totalsList: string[] = [];
             activeDiets.forEach(diet => {
-              const origIdx = dietNamesRow.indexOf(diet.name);
-              if (origIdx !== -1) {
-                const val = tRow[origIdx] || "0";
-                totalsList.push("<strong>" + diet.name + "</strong>: " + val);
-              }
+              totalsList.push("<strong>" + diet.name + "</strong>: " + diet.total);
             });
 
             totalsSummaryHtml += '<div class="company-total-row">' +
-              '<div class="total-row-label">' + label + "</div>" +
+              '<div class="total-row-label">TOTAL</div>' +
               '<div class="total-row-values">' + totalsList.join(" &nbsp;|&nbsp; ") + "</div>" +
               "</div>";
-          });
+          } else {
+            totalsSummaryHtml += '<div class="company-total-row">' +
+              '<div class="total-row-label">TOTAL</div>' +
+              '<div class="total-row-values">No special diet requirements</div>' +
+              "</div>";
+          }
 
-          pairCompaniesHtml += '<div class="company-card company-' + section.company.toUpperCase() + '">' +
-            '<div class="company-name-banner">' + section.company + " COMPANY</div>" +
+          pairCompaniesHtml += '<div class="company-card company-' + company + '">' +
+            '<div class="company-name-banner">' + company + " COMPANY</div>" +
             '<div class="diets-flex-container">' + dietsHtml + "</div>" +
             '<div class="company-totals-section">' + totalsSummaryHtml + "</div>" +
             "</div>";
@@ -608,53 +504,61 @@ export default function DashboardPage() {
           "</div>";
       });
 
+      // Calculate totals for battalions and overall
+      const getDietCountForCompany = (comp: string, diet: string): number => {
+        return companyDietsData[comp]?.[diet]?.length || 0;
+      };
+
+      const getBattTotal = (companies: string[], diet: string): number => {
+        return companies.reduce((sum, comp) => sum + getDietCountForCompany(comp, diet), 0);
+      };
+
+      const getOverallTotal = (diet: string): number => {
+        return COMPANY_ORDER.reduce((sum, comp) => sum + getDietCountForCompany(comp, diet), 0);
+      };
+
       // Build the final summary page
       let summaryPageHtml = "";
-      const masterHeaders = companySections[0]?.headerRows[0] || [];
 
-      const formatSummaryCard = (title: string, row: string[] | null) => {
-        if (!row) return "";
+      const formatSummaryCard = (title: string, getCount: (diet: string) => number) => {
         let itemsHtml = "";
-        for (let j = 1; j < row.length; j++) {
-          const val = row[j] || "";
-          const dietName = masterHeaders[j] || "";
-          if (val && val !== "0" && dietName && dietName.startsWith("NO ")) {
+        dietNames.forEach(diet => {
+          const count = getCount(diet);
+          if (count > 0) {
             itemsHtml += '<div class="summary-item">' +
-              '<span class="summary-item-label">' + dietName + '</span>' +
-              '<span class="summary-item-val">' + val + '</span>' +
+              '<span class="summary-item-label">' + diet + '</span>' +
+              '<span class="summary-item-val">' + count + '</span>' +
               '</div>';
           }
-        }
+        });
         return '<div class="summary-card">' +
           '<div class="summary-card-title">' + title + '</div>' +
           '<div class="summary-card-values">' + (itemsHtml || '<div style="font-size:7.5pt;color:#999;text-align:center;padding:10px 0;">None</div>') + '</div>' +
           '</div>';
       };
 
-      if (firstBattRow || secondBattRow || thirdBattRow || fourthBattRow || overallRow) {
-        summaryPageHtml += '<div class="page-container">' +
-          '<div class="print-header">' +
-          '<div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>' +
-          '<div class="header-title-2">Mess Council</div>' +
-          '<div class="header-title-3">Fort General Gregorio H. del Pilar</div>' +
-          '<div class="header-title-4">Baguio City</div>' +
-          "</div>" +
-          '<div class="print-datetime">' + formattedDateTime + "</div>" +
-          
-          '<div class="document-title-strip">' +
-          '<div class="doc-title">SPECIAL DIET SUMMARY</div>' +
-          '<div class="batt-title">SUMMARY REPORT</div>' +
-          "</div>" +
-          
-          '<div class="summary-cards-wrapper">' +
-          formatSummaryCard("1ST BATTALLION (ALFA & BRAVO)", firstBattRow) +
-          formatSummaryCard("2ND BATTALLION (CHARLIE & DELTA)", secondBattRow) +
-          formatSummaryCard("3RD BATTALLION (ECHO & FOXTROT)", thirdBattRow) +
-          formatSummaryCard("4TH BATTALLION (GOLF & HAWK)", fourthBattRow) +
-          formatSummaryCard("OVERALL TOTAL", overallRow) +
-          "</div>" +
-          "</div>";
-      }
+      summaryPageHtml += '<div class="page-container">' +
+        '<div class="print-header">' +
+        '<div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>' +
+        '<div class="header-title-2">Mess Council</div>' +
+        '<div class="header-title-3">Fort General Gregorio H. del Pilar</div>' +
+        '<div class="header-title-4">Baguio City</div>' +
+        "</div>" +
+        '<div class="print-datetime">' + formattedDateTime + "</div>" +
+        
+        '<div class="document-title-strip">' +
+        '<div class="doc-title">SPECIAL DIET SUMMARY</div>' +
+        '<div class="batt-title">SUMMARY REPORT</div>' +
+        "</div>" +
+        
+        '<div class="summary-cards-wrapper">' +
+        formatSummaryCard("1ST BATTALION (ALFA & BRAVO)", (diet) => getBattTotal(["ALFA", "BRAVO"], diet)) +
+        formatSummaryCard("2ND BATTALION (CHARLIE & DELTA)", (diet) => getBattTotal(["CHARLIE", "DELTA"], diet)) +
+        formatSummaryCard("3RD BATTALION (ECHO & FOXTROT)", (diet) => getBattTotal(["ECHO", "FOXTROT"], diet)) +
+        formatSummaryCard("4TH BATTALION (GOLF & HAWK)", (diet) => getBattTotal(["GOLF", "HAWK"], diet)) +
+        formatSummaryCard("OVERALL TOTAL", getOverallTotal) +
+        "</div>" +
+        "</div>";
 
       pagesHtml += summaryPageHtml;
 
@@ -747,11 +651,16 @@ export default function DashboardPage() {
       <header className="hero-header-card animate-fade-in animate-stagger-1">
         <div className="hero-text">
           <h2>{greeting}</h2>
-          <p>
-            Mess Disposition System connected to:{" "}
+          <p style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <span>Mess Disposition System connected to:</span>{" "}
             <span style={{ fontWeight: 800, textDecoration: "underline", color: dataSource === "LIVE" ? "var(--success)" : "var(--accent)" }}>
               {dataSource === "LIVE" ? "Live Cadet Database" : "Demo Mode / Offline Roster"}
             </span>
+            {lastSynced && (
+              <span style={{ fontSize: "0.75rem", opacity: 0.85, backgroundColor: "rgba(255, 255, 255, 0.1)", padding: "2px 8px", borderRadius: "12px", border: "1px solid rgba(255, 255, 255, 0.15)", marginLeft: "8px" }}>
+                Auto-sync active (Last updated: {lastSynced})
+              </span>
+            )}
           </p>
         </div>
         <div className="header-actions" style={{ display: "flex", gap: "10px" }}>
@@ -767,7 +676,7 @@ export default function DashboardPage() {
               <span>Print Special Diet Report</span>
             </button>
           )}
-          <button className="btn btn-accent" onClick={fetchSpreadsheetData} disabled={loading}>
+          <button className="btn btn-accent" onClick={() => fetchSpreadsheetData(false)} disabled={loading}>
             {loading ? (
               <>
                 <svg className="animate-spin" style={{ width: "16px", height: "16px", marginRight: "6px" }} fill="none" viewBox="0 0 24 24">
