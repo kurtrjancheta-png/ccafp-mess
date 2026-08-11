@@ -622,15 +622,33 @@ export default function DashboardPage() {
         ".company-HAWK .diet-column-header { background-color: #000000 !important; color: #fff; }" +
         "</style></head><body>" +
         pagesHtml +
-        "<script>window.onload = function() { window.print(); }<\/script>" +
         "</body></html>";
       
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.write(printContent);
-        printWindow.document.close();
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "none";
+      iframe.style.visibility = "hidden";
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(printContent);
+        iframeDoc.close();
+
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 1000);
+        }, 500);
       } else {
-        alert("Could not open print window. Please disable your pop-up blocker.");
+        alert("Failed to initialize print container.");
       }
     } catch (err) {
       console.error("Print report error:", err);
