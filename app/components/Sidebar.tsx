@@ -35,7 +35,7 @@ export default function Sidebar() {
   const startTimer = () => {
     clearTimer();
     timerRef.current = setTimeout(() => {
-      if (!isPinned) {
+      if (!isPinned && !showLogin) {
         setIsCollapsed(true);
       }
     }, 10000); // 10 seconds
@@ -103,6 +103,23 @@ export default function Sidebar() {
     const width = isCollapsed ? "80px" : "280px";
     document.documentElement.style.setProperty("--sidebar-width", width);
   }, [isCollapsed, isMounted]);
+
+  // Lock body scroll and prevent collapse when login modal is open
+  useEffect(() => {
+    if (showLogin) {
+      clearTimer();
+      setIsCollapsed(false);
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+      if (!isPinned && isMounted) {
+        startTimer();
+      }
+    }
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [showLogin, isMounted]);
 
   const toggleTheme = () => {
     const newDark = !isDark;

@@ -184,7 +184,7 @@ a {
   margin-bottom: 2.5rem;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border-color);
-  position: relative;
+  width: 100%;
 }
 
 .pin-sidebar-btn {
@@ -192,16 +192,13 @@ a {
   border: none;
   cursor: pointer;
   color: var(--muted);
-  padding: 4px;
-  border-radius: 4px;
+  padding: 6px;
+  border-radius: var(--border-radius-sm);
   transition: var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  margin-left: auto;
 }
 
 .pin-sidebar-btn:hover {
@@ -1302,6 +1299,76 @@ tr:hover td {
   display: flex;
   justify-content: flex-end;
   background-color: var(--background);
+}
+
+/* Scroll Lock when Modal is Open */
+body.modal-open {
+  overflow: hidden !important;
+}
+
+/* Custom premium scrollbars for modals and table containers */
+.modal-body::-webkit-scrollbar,
+.table-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.modal-body::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-body::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Sidebar texts wrapping configuration to prevent wrapping artifacts during transitions */
+.brand-text h1,
+.brand-text span,
+.nav-item span,
+.sidebar-footer span,
+.copyright-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+/* Collapsed Sidebar button adjustments to render circular icons */
+.sidebar.collapsed .sidebar-footer .btn,
+.sidebar.collapsed .btn-accent {
+  padding: 8px !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  margin: 0 auto 10px auto !important;
+  box-shadow: none !important;
+}
+
+.sidebar.collapsed .sidebar-footer .btn span,
+.sidebar.collapsed .btn-accent span {
+  display: none !important;
+}
+
+.sidebar.collapsed .sidebar-footer .btn svg,
+.sidebar.collapsed .btn-accent svg {
+  margin: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.sidebar.collapsed .no-print {
+  padding: 0 !important;
+  margin-top: 10px !important;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 /* Mobile Responsiveness */

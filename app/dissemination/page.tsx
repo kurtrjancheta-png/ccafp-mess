@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
 
@@ -20,6 +21,7 @@ export default function DisseminationsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   // Filter & Search States
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,7 +50,20 @@ export default function DisseminationsPage() {
 
   useEffect(() => {
     fetchDisseminations();
+    setMounted(true);
   }, []);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [isModalOpen]);
 
   // Convert Drive Share link to direct view/download URL for <img> tags
   const getDirectDriveImageUrl = (url: string) => {
@@ -620,7 +635,7 @@ export default function DisseminationsPage() {
       </div>
 
       {/* Dissemination Modal (Post/Edit) */}
-      {isModalOpen && (
+      {isModalOpen && mounted && createPortal(
         <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "600px", animation: "modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}>
             
@@ -649,26 +664,27 @@ export default function DisseminationsPage() {
 
                 {/* Content input */}
                 <div className="form-group">
-                  <label htmlFor="form-content">Directive Content / Details</label>
+                  <label htmlFor="form-content">Dissemination Message</label>
                   <textarea
                     id="form-content"
                     className="input-field"
-                    rows={8}
-                    placeholder="Provide full announcement details here, support multiple lines..."
+                    rows={4}
+                    placeholder="Write details of the dissemination bulletin here..."
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    style={{ resize: "vertical", fontFamily: "inherit" }}
                     required
+                    style={{ resize: "vertical", minHeight: "80px" }}
                   />
                 </div>
 
-                {/* Upload Section */}
+                {/* Attachment options (Images / PDF Docs) */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                   
-                  {/* Media input */}
+                  {/* Photo attachment */}
                   <div className="form-group">
-                    <label>Media Bulletin (Image/Video)</label>
+                    <label>Photo Bulletin (Optional)</label>
                     <div 
+                      className="upload-dropzone" 
                       onClick={() => mediaInputRef.current?.click()}
                       style={{ 
                         border: "1.5px dashed var(--border-color)", 
@@ -762,7 +778,7 @@ export default function DisseminationsPage() {
 
           </div>
         </div>
-      )}
+      ), document.body)}
 
       {/* Advisory bulletin */}
       <div className="card" style={{ borderLeft: "4px solid var(--primary)", marginTop: "2.5rem" }}>
