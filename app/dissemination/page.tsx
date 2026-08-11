@@ -636,7 +636,7 @@ export default function DisseminationsPage() {
 
       {/* Dissemination Modal (Post/Edit) */}
       {isModalOpen && mounted && createPortal(
-        <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
+        (<div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "600px", animation: "modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}>
             
             {/* Header */}
@@ -777,8 +777,9 @@ export default function DisseminationsPage() {
             </form>
 
           </div>
-        </div>
-      ), document.body)}
+        </div>),
+        document.body
+      )}
 
       {/* Advisory bulletin */}
       <div className="card" style={{ borderLeft: "4px solid var(--primary)", marginTop: "2.5rem" }}>
