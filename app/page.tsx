@@ -372,6 +372,15 @@ export default function DashboardPage() {
 
       return `
         <div class="company-section">
+          <div class="print-header">
+            <div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>
+            <div class="header-title-2">Mess Council</div>
+            <div class="header-title-3">Fort General Gregorio H. del Pilar</div>
+            <div class="header-title-4">Baguio City</div>
+          </div>
+
+          <div class="print-datetime">${formattedDateTime}</div>
+
           <table class="diet-table">
             <thead>
               <tr class="header-row-1">
@@ -401,7 +410,7 @@ export default function DashboardPage() {
           @media print {
             @page {
               size: landscape;
-              margin: 10mm 15mm 15mm 15mm;
+              margin: 8mm;
             }
             body {
               -webkit-print-color-adjust: exact;
@@ -413,53 +422,50 @@ export default function DashboardPage() {
           }
 
           body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            color: #333;
+            padding: 10px;
+            color: #000;
             background-color: #fff;
           }
 
           .print-header {
             text-align: center;
-            margin-bottom: 25px;
-            line-height: 1.4;
+            margin-bottom: 12px;
+            line-height: 1.3;
           }
 
           .header-title-1 {
-            font-size: 14pt;
+            font-size: 12pt;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
           }
 
           .header-title-2 {
-            font-size: 13pt;
+            font-size: 11pt;
             font-weight: bold;
             text-transform: uppercase;
             margin-top: 2px;
           }
 
           .header-title-3 {
-            font-size: 11pt;
+            font-size: 9pt;
             margin-top: 2px;
           }
 
           .header-title-4 {
-            font-size: 11pt;
+            font-size: 9pt;
             margin-top: 2px;
           }
 
           .print-datetime {
             text-align: center;
-            font-size: 12pt;
+            font-size: 10pt;
             font-weight: bold;
-            margin-bottom: 30px;
-            letter-spacing: 0.5px;
+            margin-bottom: 20px;
           }
 
           .company-section {
-            margin-bottom: 40px;
             page-break-after: always;
           }
           
@@ -470,24 +476,45 @@ export default function DashboardPage() {
           .diet-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9pt;
-            table-layout: fixed;
+            font-size: 7.5pt;
+            table-layout: auto;
           }
 
           .diet-table th, .diet-table td {
-            border: 1px solid #ccc;
-            padding: 6px 4px;
+            border: 1px solid #777;
+            padding: 4px 3px;
             text-align: left;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            vertical-align: middle;
+          }
+
+          .diet-table th {
+            font-size: 6.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            text-align: center;
+          }
+
+          .diet-table td {
             white-space: nowrap;
+            font-size: 7pt;
+          }
+
+          .diet-table th:first-child, .diet-table td:first-child {
+            width: 45px;
+            min-width: 45px;
+            max-width: 45px;
+            text-align: center;
+            font-weight: bold;
+            background-color: #f2f2f2;
           }
 
           .header-row-1 th {
             background-color: #f2f2f2;
             font-weight: bold;
             text-align: left;
-            font-size: 9pt;
           }
 
           .header-row-2 th {
@@ -495,7 +522,10 @@ export default function DashboardPage() {
             color: #000;
             font-weight: bold;
             text-align: left;
-            font-size: 9pt;
+          }
+
+          .header-row-2 th:first-child {
+            background-color: #b6d7a8 !important;
           }
 
           .header-row-1 th {
@@ -523,21 +553,12 @@ export default function DashboardPage() {
 
           .total-label, .total-val {
             background-color: #f9f9f9 !important;
-            border-top: 2px solid #333;
-            border-bottom: 2px double #333;
+            border-top: 2px solid #000 !important;
+            border-bottom: 3px double #000 !important;
           }
         </style>
       </head>
       <body>
-        <div class="print-header">
-          <div class="header-title-1">Cadet Corps Armed Forces of the Philippines</div>
-          <div class="header-title-2">Mess Council</div>
-          <div class="header-title-3">Fort General Gregorio H. del Pilar</div>
-          <div class="header-title-4">Baguio City</div>
-        </div>
-
-        <div class="print-datetime">${formattedDateTime}</div>
-
         ${tablesHtml}
 
         <script>
