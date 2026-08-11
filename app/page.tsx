@@ -614,17 +614,20 @@ export default function DashboardPage() {
 
       const formatSummaryCard = (title: string, row: string[] | null) => {
         if (!row) return "";
-        const totalsList: string[] = [];
+        let itemsHtml = "";
         for (let j = 1; j < row.length; j++) {
           const val = row[j] || "";
           const dietName = masterHeaders[j] || "";
           if (val && val !== "0" && dietName && dietName.startsWith("NO ")) {
-            totalsList.push("<strong>" + dietName + "</strong>: " + val);
+            itemsHtml += '<div class="summary-item">' +
+              '<span class="summary-item-label">' + dietName + '</span>' +
+              '<span class="summary-item-val">' + val + '</span>' +
+              '</div>';
           }
         }
         return '<div class="summary-card">' +
           '<div class="summary-card-title">' + title + '</div>' +
-          '<div class="summary-card-values">' + (totalsList.join(" &nbsp;|&nbsp; ") || "No special diet requirements") + '</div>' +
+          '<div class="summary-card-values">' + (itemsHtml || '<div style="font-size:7.5pt;color:#999;text-align:center;padding:10px 0;">None</div>') + '</div>' +
           '</div>';
       };
 
@@ -644,10 +647,10 @@ export default function DashboardPage() {
           "</div>" +
           
           '<div class="summary-cards-wrapper">' +
-          formatSummaryCard("1ST BATTALLION TOTAL (ALFA & BRAVO)", firstBattRow) +
-          formatSummaryCard("2ND BATTALLION TOTAL (CHARLIE & DELTA)", secondBattRow) +
-          formatSummaryCard("3RD BATTALLION TOTAL (ECHO & FOXTROT)", thirdBattRow) +
-          formatSummaryCard("4TH BATTALLION TOTAL (GOLF & HAWK)", fourthBattRow) +
+          formatSummaryCard("1ST BATTALLION (ALFA & BRAVO)", firstBattRow) +
+          formatSummaryCard("2ND BATTALLION (CHARLIE & DELTA)", secondBattRow) +
+          formatSummaryCard("3RD BATTALLION (ECHO & FOXTROT)", thirdBattRow) +
+          formatSummaryCard("4TH BATTALLION (GOLF & HAWK)", fourthBattRow) +
           formatSummaryCard("OVERALL TOTAL", overallRow) +
           "</div>" +
           "</div>";
@@ -685,12 +688,17 @@ export default function DashboardPage() {
         ".document-title-strip { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 12px; }" +
         ".doc-title { font-size: 13pt; font-weight: 800; color: #000; letter-spacing: 0.5px; text-transform: uppercase; }" +
         ".batt-title { font-size: 11pt; font-weight: 700; color: #444; text-transform: uppercase; }" +
-        ".summary-cards-wrapper { display: flex; flex-direction: column; gap: 12px; }" +
-        ".summary-card { border: 2px solid #555; border-radius: 6px; padding: 10px 14px; background-color: #fff; page-break-inside: avoid; break-inside: avoid; }" +
-        ".summary-card:last-child { border-color: #000; border-width: 2.5px; }" +
-        ".summary-card-title { font-size: 9pt; font-weight: bold; background-color: #f2f2f2; padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; border-left: 4px solid #b6d7a8; }" +
-        ".summary-card:last-child .summary-card-title { background-color: #333; color: #fff; border-left: 4px solid #d93025; }" +
-        ".summary-card-values { font-size: 8.5pt; color: #111; line-height: 1.4; }" +
+        ".summary-cards-wrapper { display: flex; gap: 8px; width: 100%; align-items: stretch; }" +
+        ".summary-card { flex: 1; border: 1.5px solid #666; border-radius: 6px; padding: 6px; background-color: #fff; display: flex; flex-direction: column; gap: 5px; page-break-inside: avoid; break-inside: avoid; }" +
+        ".summary-card:last-child { border-color: #000; border-width: 2.5px; background-color: #fcfcfc; }" +
+        ".summary-card-title { font-size: 7.5pt; font-weight: bold; background-color: #f2f2f2; padding: 3px 4px; border-radius: 4px; text-align: center; border-bottom: 3.5px solid #b6d7a8; text-transform: uppercase; line-height: 1.2; }" +
+        ".summary-card:last-child .summary-card-title { background-color: #333; color: #fff; border-bottom-color: #d93025; }" +
+        ".summary-card-values { display: flex; flex-direction: column; gap: 3.5px; }" +
+        ".summary-item { display: flex; justify-content: space-between; font-size: 7pt; border-bottom: 1px solid #eee; padding-bottom: 1.5px; }" +
+        ".summary-item:last-child { border-bottom: none; }" +
+        ".summary-item-label { font-weight: 600; color: #444; text-transform: uppercase; }" +
+        ".summary-item-val { font-weight: 700; color: #000; }" +
+        ".summary-card:last-child .summary-item-label { color: #222; }" +
         "</style></head><body>" +
         pagesHtml +
         "<script>window.onload = function() { window.print(); }<\/script>" +
