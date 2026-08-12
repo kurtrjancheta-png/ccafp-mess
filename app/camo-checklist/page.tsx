@@ -324,8 +324,40 @@ export default function CamoChecklistPage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {tasks.length > 0 ? (
-            tasks.map((item, idx) => {
+          {(() => {
+            if (tasks.length === 0) {
+              return (
+                <p style={{ textAlign: "center", color: "var(--muted)", padding: "2rem" }}>
+                  No tasks found in the checklist.
+                </p>
+              );
+            }
+
+            // Group tasks by category
+            const normalTasksBeforeL: { idx: number; item: TaskItem }[] = [];
+            const normalTasksAfterM: { idx: number; item: TaskItem }[] = [];
+            const lGroup: { idx: number; item: TaskItem; label: string }[] = [];
+            const mGroup: { idx: number; item: TaskItem; area: string; timeLabel: string }[] = [];
+
+            tasks.forEach((item, idx) => {
+              const lMatch = item.task.match(/^l\.\s+Checked\s+sanitary\s+measures:\s*(.+)$/i);
+              const mMatch = item.task.match(/^m\.\s+Ensured\s+cleanliness\s+&\s+orderliness:\s*(.+?)\s*\((.+?)\)$/i);
+
+              if (lMatch) {
+                lGroup.push({ idx, item, label: lMatch[1].trim() });
+              } else if (mMatch) {
+                mGroup.push({ idx, item, area: mMatch[1].trim(), timeLabel: mMatch[2].trim() });
+              } else {
+                const firstChar = item.task.trim()[0]?.toLowerCase();
+                if (firstChar >= "n" && firstChar <= "z") {
+                  normalTasksAfterM.push({ idx, item });
+                } else {
+                  normalTasksBeforeL.push({ idx, item });
+                }
+              }
+            });
+
+            const renderNormalTaskRow = (item: TaskItem, idx: number) => {
               const isCompleted = item.status === "COMPLETED";
               return (
                 <div 
@@ -334,7 +366,7 @@ export default function CamoChecklistPage() {
                     display: "flex",
                     flexDirection: "column",
                     padding: "1.5rem",
-                    borderBottom: idx < tasks.length - 1 ? "1px solid var(--border-color)" : "none",
+                    borderBottom: "1px solid var(--border-color)",
                     backgroundColor: isCompleted ? "var(--success-light)" : "transparent",
                     transition: "var(--transition)"
                   }}
@@ -384,7 +416,6 @@ export default function CamoChecklistPage() {
                         {item.task}
                       </span>
                       
-                      {/* Subtitle status badge */}
                       <span 
                         className={`badge ${isCompleted ? "badge-army" : "badge-status"}`}
                         style={{ 
@@ -401,7 +432,7 @@ export default function CamoChecklistPage() {
                     </div>
                   </div>
 
-                  {/* Task parameters: time & remarks (expandable layout) */}
+                  {/* Task parameters: time & remarks */}
                   <div 
                     style={{ 
                       marginTop: "1rem", 
@@ -429,7 +460,7 @@ export default function CamoChecklistPage() {
                       <input
                         type="text"
                         className="input-field"
-                        placeholder="e.g. Temperature checked normal, no queue issues."
+                        placeholder="e.g. Completed without issues."
                         value={item.remarks}
                         onChange={(e) => handleFieldChange(idx, "remarks", e.target.value)}
                         style={{ padding: "6px 10px", fontSize: "0.8rem", width: "100%" }}
@@ -438,12 +469,282 @@ export default function CamoChecklistPage() {
                   </div>
                 </div>
               );
-            })
-          ) : (
-            <p style={{ textAlign: "center", color: "var(--muted)", padding: "2rem" }}>
-              No tasks found in the checklist.
-            </p>
-          )}
+            };
+
+            const renderLGroup = () => {
+              if (lGroup.length === 0) return null;
+              
+              const firstItem = lGroup[0].item;
+              const isGroupCompleted = lGroup.every(g => g.item.status === "COMPLETED");
+
+              return (
+                <div 
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: "1.5rem",
+                    borderBottom: "1px solid var(--border-color)",
+                    backgroundColor: "rgba(248, 250, 252, 0.5)",
+                    transition: "var(--transition)"
+                  }}
+                  className="camo-task-row"
+                >
+                  <div style={{ flexGrow: 1, marginBottom: "1rem" }}>
+                    <span style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--secondary)" }}>
+                      l. Checked the sanitary measures of mess personnel during food preparation:
+                    </span>
+                    <span 
+                      className={`badge ${isGroupCompleted ? "badge-army" : "badge-status"}`}
+                      style={{ 
+                        marginLeft: "8px", 
+                        fontSize: "0.65rem", 
+                        padding: "1px 6px",
+                        backgroundColor: isGroupCompleted ? "#DCFCE7" : "#F1F5F9",
+                        color: isGroupCompleted ? "#15803D" : "#64748B",
+                        borderColor: isGroupCompleted ? "#BBF7D0" : "#E2E8F0"
+                      }}
+                    >
+                      {isGroupCompleted ? "COMPLETED" : "PENDING"}
+                    </span>
+                  </div>
+                  
+                  {/* Horizontal Checkboxes */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem", paddingLeft: "1.5rem", marginBottom: "1.25rem" }}>
+                    {lGroup.map(({ idx, item, label }) => {
+                      const isCompleted = item.status === "COMPLETED";
+                      return (
+                        <label 
+                          key={idx}
+                          style={{ 
+                            display: "flex", 
+                            alignItems: "center", 
+                            gap: "8px", 
+                            cursor: "pointer", 
+                            fontSize: "0.9rem",
+                            color: isCompleted ? "var(--success)" : "var(--secondary-light)",
+                            fontWeight: isCompleted ? 600 : 500
+                          }}
+                        >
+                          <span 
+                            style={{ 
+                              display: "flex", 
+                              alignItems: "center", 
+                              justifyContent: "center", 
+                              width: "20px", 
+                              height: "20px", 
+                              borderRadius: "5px", 
+                              border: `2px solid ${isCompleted ? "var(--success)" : "var(--border-color)"}`, 
+                              backgroundColor: isCompleted ? "var(--success)" : "transparent",
+                              transition: "var(--transition)"
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isCompleted}
+                              onChange={() => handleStatusToggle(idx)}
+                              style={{ display: "none" }}
+                            />
+                            {isCompleted && (
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" style={{ width: "12px", height: "12px" }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </span>
+                          {label}
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {/* Group-wide parameters */}
+                  <div 
+                    style={{ 
+                      paddingLeft: "1.5rem", 
+                      display: "grid", 
+                      gridTemplateColumns: "150px 1fr", 
+                      gap: "1.25rem",
+                      alignItems: "center"
+                    }}
+                  >
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.7rem", color: "var(--muted)" }}>Completed Time</label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="e.g. 10:30"
+                        value={firstItem.time}
+                        onChange={(e) => {
+                          lGroup.forEach(({ idx }) => handleFieldChange(idx, "time", e.target.value));
+                        }}
+                        style={{ padding: "6px 10px", fontSize: "0.8rem" }}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.7rem", color: "var(--muted)" }}>Remarks / Observations</label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="e.g. All staff checked and compliant."
+                        value={firstItem.remarks}
+                        onChange={(e) => {
+                          lGroup.forEach(({ idx }) => handleFieldChange(idx, "remarks", e.target.value));
+                        }}
+                        style={{ padding: "6px 10px", fontSize: "0.8rem", width: "100%" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+
+            const renderMGroup = () => {
+              if (mGroup.length === 0) return null;
+
+              const areas = ["Cadet dining area", "Preparation area", "Cooking area", "Dish washing area", "Floor", "CAMO room"];
+              const times = ["2100H", "1000H", "1600H"];
+              const firstItem = mGroup[0].item;
+              const isGroupCompleted = mGroup.every(g => g.item.status === "COMPLETED");
+
+              return (
+                <div 
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: "1.5rem",
+                    borderBottom: "1px solid var(--border-color)",
+                    backgroundColor: "rgba(248, 250, 252, 0.3)",
+                    transition: "var(--transition)"
+                  }}
+                  className="camo-task-row"
+                >
+                  <div style={{ flexGrow: 1, marginBottom: "1rem" }}>
+                    <span style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--secondary)" }}>
+                      m. Ensured the cleanliness and orderliness of the following:
+                    </span>
+                    <span 
+                      className={`badge ${isGroupCompleted ? "badge-army" : "badge-status"}`}
+                      style={{ 
+                        marginLeft: "8px", 
+                        fontSize: "0.65rem", 
+                        padding: "1px 6px",
+                        backgroundColor: isGroupCompleted ? "#DCFCE7" : "#F1F5F9",
+                        color: isGroupCompleted ? "#15803D" : "#64748B",
+                        borderColor: isGroupCompleted ? "#BBF7D0" : "#E2E8F0"
+                      }}
+                    >
+                      {isGroupCompleted ? "COMPLETED" : "PENDING"}
+                    </span>
+                  </div>
+
+                  {/* Cleanliness Table Grid */}
+                  <div style={{ overflowX: "auto", marginBottom: "1.25rem", paddingLeft: "1.5rem" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "450px" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1.5px solid var(--border-color)" }}>
+                          <th style={{ textAlign: "left", padding: "8px", fontSize: "0.8rem", color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>Area</th>
+                          {times.map(t => (
+                            <th key={t} style={{ textAlign: "center", padding: "8px", fontSize: "0.8rem", color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", width: "100px" }}>{t}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {areas.map(area => (
+                          <tr key={area} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                            <td style={{ padding: "10px 8px", fontSize: "0.9rem", color: "var(--secondary)", fontWeight: 600 }}>{area}</td>
+                            {times.map(t => {
+                              const match = mGroup.find(g => g.area.toLowerCase() === area.toLowerCase() && g.timeLabel.toLowerCase() === t.toLowerCase());
+                              if (!match) return <td key={t} style={{ textAlign: "center", color: "var(--muted)" }}>-</td>;
+                              
+                              const isCompleted = match.item.status === "COMPLETED";
+                              return (
+                                <td key={t} style={{ textAlign: "center", padding: "8px" }}>
+                                  <label 
+                                    style={{ 
+                                      display: "inline-flex", 
+                                      alignItems: "center", 
+                                      justifyContent: "center", 
+                                      width: "20px", 
+                                      height: "20px", 
+                                      borderRadius: "5px", 
+                                      border: `2px solid ${isCompleted ? "var(--success)" : "var(--border-color)"}`, 
+                                      backgroundColor: isCompleted ? "var(--success)" : "transparent",
+                                      cursor: "pointer",
+                                      transition: "var(--transition)"
+                                    }}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isCompleted}
+                                      onChange={() => handleStatusToggle(match.idx)}
+                                      style={{ display: "none" }}
+                                    />
+                                    {isCompleted && (
+                                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" style={{ width: "12px", height: "12px" }}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </label>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Group-wide parameters for Cleanliness */}
+                  <div 
+                    style={{ 
+                      paddingLeft: "1.5rem", 
+                      display: "grid", 
+                      gridTemplateColumns: "150px 1fr", 
+                      gap: "1.25rem",
+                      alignItems: "center"
+                    }}
+                  >
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.7rem", color: "var(--muted)" }}>Completed Time</label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="e.g. 21:00"
+                        value={firstItem.time}
+                        onChange={(e) => {
+                          mGroup.forEach(({ idx }) => handleFieldChange(idx, "time", e.target.value));
+                        }}
+                        style={{ padding: "6px 10px", fontSize: "0.8rem" }}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: "0.7rem", color: "var(--muted)" }}>Remarks / Observations</label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="e.g. Cleanliness check verified for all areas."
+                        value={firstItem.remarks}
+                        onChange={(e) => {
+                          mGroup.forEach(({ idx }) => handleFieldChange(idx, "remarks", e.target.value));
+                        }}
+                        style={{ padding: "6px 10px", fontSize: "0.8rem", width: "100%" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <>
+                {normalTasksBeforeL.map(({ item, idx }) => renderNormalTaskRow(item, idx))}
+                {renderLGroup()}
+                {renderMGroup()}
+                {normalTasksAfterM.map(({ item, idx }) => renderNormalTaskRow(item, idx))}
+              </>
+            );
+          })()}
         </div>
       </div>
 

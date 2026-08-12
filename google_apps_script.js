@@ -243,8 +243,10 @@ function saveCamoTasksToSheet(updatedTasks) {
   }
   
   var values = sheet.getDataRange().getValues();
-  if (values.length < 2) {
-    throw new Error("Checklist sheet does not contain enough rows (header + tasks).");
+  if (values.length < 1) {
+    // If empty, append headers
+    sheet.appendRow(["TASK", "STATUS", "TIME", "REMARKS"]);
+    values = [["TASK", "STATUS", "TIME", "REMARKS"]];
   }
   
   var headers = values[0].map(function(h) { return h.toString().toUpperCase().trim(); });
@@ -266,7 +268,7 @@ function saveCamoTasksToSheet(updatedTasks) {
     }
   }
   
-  // Update each task matching by name
+  // Update or append each task
   updatedTasks.forEach(function(ut) {
     var cleanTaskName = ut.task.trim().toLowerCase();
     var rowNum = taskRowMap[cleanTaskName];
@@ -280,6 +282,16 @@ function saveCamoTasksToSheet(updatedTasks) {
       if (remarksIdx !== -1) {
         sheet.getRange(rowNum, remarksIdx + 1).setValue(ut.remarks);
       }
+    } else {
+      // Create new row data matching headers
+      var newRow = new Array(headers.length).fill("");
+      newRow[taskIdx] = ut.task.trim();
+      if (statusIdx !== -1) newRow[statusIdx] = ut.status || "PENDING";
+      if (timeIdx !== -1) newRow[timeIdx] = ut.time || "";
+      if (remarksIdx !== -1) newRow[remarksIdx] = ut.remarks || "";
+      
+      sheet.appendRow(newRow);
+      taskRowMap[cleanTaskName] = sheet.getLastRow();
     }
   });
   
