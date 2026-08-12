@@ -753,7 +753,7 @@ function saveWeeklyMenu(rows) {
   }
   
   // Clear the existing content to ensure no remnants
-  menuSheet.clearContent();
+  menuSheet.clearContents();
   
   // Write the new rows starting from A1
   var range = menuSheet.getRange(1, 1, rows.length, rows[0].length);
