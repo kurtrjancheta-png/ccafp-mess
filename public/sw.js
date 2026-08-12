@@ -34,11 +34,9 @@ self.addEventListener("fetch", (e) => {
   }
   
   e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(e.request).then((response) => {
+    fetch(e.request)
+      .then((response) => {
+        // If the request was successful, cache it
         if (response && response.status === 200 && !e.request.url.includes("/_next/") && !e.request.url.includes("/api/")) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -46,9 +44,10 @@ self.addEventListener("fetch", (e) => {
           });
         }
         return response;
-      }).catch(() => {
-        // Return cached page or silent fail
-      });
-    })
+      })
+      .catch(() => {
+        // Fallback to cache if network fails
+        return caches.match(e.request);
+      })
   );
 });

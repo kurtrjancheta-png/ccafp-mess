@@ -175,12 +175,15 @@ export default function MenuPage() {
     const menuGid = "143586769";
     const viandsGid = "166151731";
 
-    const menuUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${menuGid}&t=${Date.now()}`;
-    const viandsUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${viandsGid}&t=${Date.now()}`;
+    const menuUrl = `/api/sheet-csv?gid=${menuGid}`;
+    const viandsUrl = `/api/sheet-csv?gid=${viandsGid}`;
+
+    const clientController = new AbortController();
+    const timeoutId = setTimeout(() => clientController.abort(), 8000);
 
     try {
       // 1. Fetch Viands Database first for lookups
-      const viandsRes = await fetch(viandsUrl);
+      const viandsRes = await fetch(viandsUrl, { signal: clientController.signal });
       let parsedViands: ViandRecord[] = [];
       const initialDiets: { [viand: string]: { [d: string]: boolean } } = {};
       
@@ -209,7 +212,7 @@ export default function MenuPage() {
       setLocalViandsDiets(initialDiets);
 
       // 2. Fetch Weekly Menu
-      const menuRes = await fetch(menuUrl);
+      const menuRes = await fetch(menuUrl, { signal: clientController.signal });
       if (!menuRes.ok) {
         throw new Error("Unable to fetch menu spreadsheet GID 143586769");
       }
@@ -257,16 +260,19 @@ export default function MenuPage() {
         setMenu(parsedMenuState);
         setEditMenuState(parsedMenuState);
       } else {
-        console.warn("Spreadsheet menu tab size incorrect, using local template.");
-        setMenu(DEFAULT_WEEKLY_MENU);
-        setEditMenuState(DEFAULT_WEEKLY_MENU);
+        throw new Error("Google Sheets weekly menu layout is invalid (expected 26 rows).");
       }
     } catch (err: any) {
-      console.warn("Failed to load live menu details, using local template:", err.message);
-      setLoadError("Displaying offline menu card. Google Sheets dynamic sync is currently offline.");
-      setMenu(DEFAULT_WEEKLY_MENU);
-      setEditMenuState(DEFAULT_WEEKLY_MENU);
+      console.warn("Failed to load live menu details:", err.message);
+      let errMsg = err.message || "Unable to retrieve weekly menu data from Google Sheets.";
+      if (errMsg.includes("Failed to fetch")) {
+        errMsg = "Failed to communicate with Google Sheets. Please ensure your spreadsheet is shared and you have configured the environment variables on the server.";
+      }
+      setLoadError(errMsg);
+      setMenu({});
+      setEditMenuState({});
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -1009,13 +1015,6 @@ export default function MenuPage() {
         </div>
       )}
 
-      {/* Load Error Banner */}
-      {loadError && (
-        <div className="alert-success animate-fade-in" style={{ backgroundColor: "#FFFBEB", border: "1px solid #F59E0B", color: "#B45309", marginBottom: "1.5rem" }}>
-          ⚠️ <strong>Notice:</strong> {loadError}
-        </div>
-      )}
-
       {/* Save Error Banner */}
       {saveError && (
         <div className="alert-success animate-fade-in" style={{ backgroundColor: "#FFE4E6", border: "1px solid #F43F5E", color: "#BE123C", marginBottom: "1.5rem" }}>
@@ -1023,7 +1022,27 @@ export default function MenuPage() {
         </div>
       )}
 
-      {loading ? (
+      {loadError ? (
+        <div className="card animate-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "350px", textAlign: "center", padding: "2.5rem" }}>
+          <div style={{ backgroundColor: "#FFE4E6", color: "#F43F5E", borderRadius: "50%", width: "64px", height: "64px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.5rem", fontSize: "1.75rem", boxShadow: "0 4px 10px rgba(244, 63, 94, 0.15)" }}>
+            ⚠️
+          </div>
+          <h3 style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--text-color)", marginBottom: "0.5rem" }}>Unable to Sync Weekly Menu</h3>
+          <p style={{ color: "var(--muted)", maxWidth: "450px", fontSize: "0.925rem", lineHeight: "1.5", marginBottom: "1.75rem" }}>
+            {loadError}
+          </p>
+          <button 
+            onClick={fetchMenuAndViands}
+            className="edit-menu-btn"
+            style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0.75rem 1.5rem", borderRadius: "8px", fontWeight: "bold", border: "1px solid var(--primary)", color: "var(--primary)", background: "transparent", cursor: "pointer" }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" style={{ width: "16px", height: "16px" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            <span>Retry Connection</span>
+          </button>
+        </div>
+      ) : loading ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "300px" }}>
           <svg className="animate-spin" style={{ width: "40px", height: "40px", color: "var(--primary)", marginBottom: "1rem" }} fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
