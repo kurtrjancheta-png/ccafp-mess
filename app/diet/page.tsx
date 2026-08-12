@@ -144,7 +144,7 @@ export default function DietSignifyPage() {
                   <p style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Enter your official registration credentials.</p>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+                <div className="form-row-grid">
                   <div className="form-group">
                     <label htmlFor="name-input">Cadet Last Name</label>
                     <input
@@ -172,7 +172,7 @@ export default function DietSignifyPage() {
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+                <div className="form-row-grid">
                   <div className="form-group">
                     <label htmlFor="class-select">Class</label>
                     <select

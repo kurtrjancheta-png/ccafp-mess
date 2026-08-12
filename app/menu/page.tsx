@@ -626,9 +626,8 @@ export default function MenuPage() {
           const warnings = getDietWarnings(item.val);
           return (
             <li key={idx} style={{ display: "flex", flexDirection: "column", borderBottom: idx < items.length - 1 ? "1.2px solid var(--border-color)" : "none", paddingBottom: "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                 <span style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--secondary)" }}>{item.val}</span>
-                <span style={{ fontSize: "0.65rem", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700 }}>{item.label}</span>
               </div>
               
               {/* Warnings Row */}
@@ -980,10 +979,6 @@ export default function MenuPage() {
           <h2>Weekly Menu Board</h2>
           <p>
             Dynamic meal plans, nutrition database, and dietary warning disclosures for the Cadet Corps.
-            Source:{" "}
-            <span style={{ fontWeight: 700, color: loadError ? "var(--primary)" : "var(--success)" }}>
-              {loadError ? "Offline Local" : "Live Google Sheets"}
-            </span>
           </p>
         </div>
 
@@ -1063,9 +1058,9 @@ export default function MenuPage() {
                   key={day}
                   className={`menu-tab ${activeDay === day ? "active" : ""}`}
                   onClick={() => setActiveDay(day)}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10px 0" }}
                 >
                   <span className="day-name">{day}</span>
-                  <span className="day-sub">{isToday ? "Today" : "Rotation"}</span>
                 </div>
               );
             })}

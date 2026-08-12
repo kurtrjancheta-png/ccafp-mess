@@ -1708,3 +1708,354 @@ body.modal-open {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ============================================================
+   MOBILE POLISH v2 — Comprehensive smartphone UX improvements
+   Breakpoint: =640px
+   ============================================================ */
+
+@media (max-width: 640px) {
+
+  /* ---- MODALS AS BOTTOM SHEETS ---- */
+
+  /* The main modal backdrop: slide content from bottom */
+  .modal-backdrop {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 24px 24px 0 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    max-height: 92vh;
+    animation: slideUpSheet 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards !important;
+  }
+
+  @keyframes slideUpSheet {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .modal-header {
+    padding: 1rem 1.25rem 0.875rem !important;
+    border-radius: 24px 24px 0 0;
+  }
+
+  /* Handle bar above modal header */
+  .modal-header::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    margin: 0 auto 12px;
+  }
+
+  .modal-header h3 {
+    font-size: 1rem !important;
+  }
+
+  .modal-body {
+    padding: 1rem 1.25rem !important;
+    max-height: 60vh !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-footer {
+    padding: 0.875rem 1.25rem 1.5rem !important;
+    gap: 10px;
+    justify-content: stretch !important;
+  }
+
+  .modal-footer .btn,
+  .modal-footer button {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Cadet roster table inside modal: more readable on phones */
+  .modal-body .table-container table {
+    font-size: 0.78rem;
+  }
+
+  .modal-body .table-container th,
+  .modal-body .table-container td {
+    padding: 6px 8px !important;
+  }
+
+  /* ---- SIDEBAR LOGIN MODAL (from Sidebar.tsx portal) ---- */
+  /* Already handled by modal-backdrop above — but ensure inputs are comfortable */
+  #modal-username,
+  #modal-password {
+    font-size: 1rem !important; /* Prevents iOS auto-zoom on focus */
+  }
+
+  /* ---- MENU PAGE — VERTICAL SCROLL LAYOUT ---- */
+
+  /* Day tab bar: compact horizontal chips (already scrollable, just shrink tabs) */
+  .menu-tab-bar {
+    gap: 6px !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .menu-tab {
+    flex: 0 0 auto !important;       /* Prevent stretch, allow natural wrap */
+    min-width: 70px !important;
+    padding: 8px 10px !important;
+  }
+
+  .menu-tab .day-name {
+    font-size: 0.75rem !important;
+  }
+
+  .menu-tab .day-sub {
+    font-size: 0.55rem !important;
+  }
+
+  /* Meal cards: single column, vertically scrollable */
+  .selected-day-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .meal-card {
+    min-height: unset !important;
+    padding: 1.125rem !important;
+  }
+
+  .meal-card h4 {
+    font-size: 0.95rem !important;
+    margin-bottom: 0.4rem !important;
+  }
+
+  /* ---- MENU EDIT MODAL (workspace) ---- */
+  /* These classes are injected inline but can still be overridden in @media */
+  .modal-fullscreen {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-card-workspace {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 95vh !important;
+    max-height: 95vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    animation: slideUpSheet 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards !important;
+  }
+
+  /* Workspace: stack sidebar above fields panel */
+  .workspace-body {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Day tabs: horizontal scroll row instead of vertical sidebar */
+  .workspace-sidebar {
+    width: 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    border-right: none !important;
+    border-bottom: 1.5px solid var(--border-color) !important;
+    max-height: 52px !important;
+    flex-shrink: 0;
+  }
+
+  .sidebar-day-tab {
+    flex-shrink: 0 !important;
+    padding: 10px 14px !important;
+    font-size: 0.75rem !important;
+    border-left: none !important;
+    border-bottom: 3px solid transparent !important;
+    white-space: nowrap;
+  }
+
+  .sidebar-day-tab.active {
+    border-left-color: transparent !important;
+    border-bottom-color: var(--primary) !important;
+  }
+
+  /* Fields panel: full width, scrollable */
+  .workspace-fields-panel {
+    flex-grow: 1 !important;
+    padding: 1rem !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Fields grid: single column on mobile */
+  .fields-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .meal-section-group {
+    padding: 1rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  /* Viand pills: denser grid */
+  .viand-pills-container {
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)) !important;
+    gap: 4px !important;
+  }
+
+  /* ---- DASHBOARD — STATS CARDS ---- */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .stat-card {
+    padding: 1rem !important;
+  }
+
+  .stat-card h3 {
+    font-size: 0.65rem !important;
+    letter-spacing: 0.03em !important;
+  }
+
+  /* ---- DASHBOARD — HERO HEADER ---- */
+  .hero-header-card {
+    padding: 1.25rem !important;
+    margin-bottom: 1.5rem !important;
+    gap: 0.875rem !important;
+  }
+
+  .hero-header-card h1,
+  .hero-header-card h2 {
+    font-size: 1.3rem !important;
+    line-height: 1.25 !important;
+  }
+
+  /* ---- DASHBOARD — DIET CARDS ---- */
+  .diet-category-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .diet-card-clickable {
+    padding: 10px !important;
+  }
+
+  .diet-label {
+    font-size: 0.68rem !important;
+  }
+
+  .diet-val {
+    font-size: 1.1rem !important;
+  }
+
+  /* ---- DASHBOARD — BATTALION GRID ---- */
+  .battalion-summary-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .battalion-card {
+    padding: 10px 12px !important;
+  }
+
+  /* ---- DIET PAGE (Signify Diet) — FORM STEPS ---- */
+  /* The 1fr 1fr inline grid for step 1/2 inputs */
+  .card form > div[style*="grid"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Make wizard step labels not overflow */
+  .wizard-steps {
+    gap: 4px !important;
+  }
+
+  .wizard-step span {
+    font-size: 0.6rem !important;
+  }
+
+  /* File upload trigger: taller touch target */
+  .file-upload-trigger {
+    min-height: 120px !important;
+    padding: 1.5rem 1rem !important;
+  }
+
+  /* ---- FILTER BUTTONS ---- */
+  .filter-button-group {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .filter-btn {
+    font-size: 0.72rem !important;
+    padding: 5px 10px !important;
+  }
+
+  /* ---- INPUT FIELDS — prevent iOS zoom on focus (font-size must be >= 16px) ---- */
+  .input-field {
+    font-size: 1rem !important;
+  }
+
+  /* ---- BUTTONS — bigger touch targets ---- */
+  .btn {
+    min-height: 44px;
+    padding: 10px 16px !important;
+  }
+
+  /* ---- PAGE HEADER ---- */
+  .page-header {
+    margin-bottom: 1.25rem !important;
+  }
+
+  .page-title h2 {
+    font-size: 1.25rem !important;
+  }
+
+  .page-title p {
+    font-size: 0.8rem !important;
+  }
+
+  /* ---- CARD BASE ---- */
+  .card {
+    padding: 1.125rem !important;
+    border-radius: var(--border-radius-md) !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* ---- BADGES — legible on small screens ---- */
+  .badge {
+    font-size: 0.62rem !important;
+    padding: 2px 6px !important;
+  }
+
+  /* ---- CONCERN / ANNOUNCEMENTS PAGES ---- */
+  .announcement-card {
+    padding: 1rem !important;
+  }
+
+  /* ---- CADET TABLE — hide less-important columns on mobile ---- */
+  /* Keep: Name, Company, Diet. Hide: Class number details in tight tables */
+  .table-container table thead tr th:nth-child(1),
+  .table-container table tbody tr td:nth-child(1) {
+    font-size: 0.72rem !important;
+    padding: 6px 6px !important;
+    white-space: nowrap;
+  }
+}
+
+
+/* Responsive 2-column form row grid */
+.form-row-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
