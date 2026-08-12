@@ -150,9 +150,7 @@ export default function MenuPage() {
         cell = "";
       } else if ((char === "\r" || char === "\n") && !inQuotes) {
         row.push(cell.trim());
-        if (row.some((c) => c !== "")) {
-          lines.push(row);
-        }
+        lines.push(row);
         row = [];
         cell = "";
         if (char === "\r" && nextChar === "\n") {
@@ -164,9 +162,7 @@ export default function MenuPage() {
     }
     if (cell !== "" || row.length > 0) {
       row.push(cell.trim());
-      if (row.some((c) => c !== "")) {
-        lines.push(row);
-      }
+      lines.push(row);
     }
     return lines;
   };
